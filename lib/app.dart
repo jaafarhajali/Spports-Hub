@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'themes/app_theme.dart';
 import 'themes/theme_controller.dart';
-import 'pages/signin_page.dart';
-import 'pages/signup_page.dart';
+import 'log page/signin_page.dart';
+import 'log page/signup_page.dart';
 
 class MyAuthApp extends StatelessWidget {
   const MyAuthApp({super.key});

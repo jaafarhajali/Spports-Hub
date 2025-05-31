@@ -20,4 +20,32 @@ class ThemeController extends ChangeNotifier {
     _themeMode = isDarkMode ? ThemeMode.light : ThemeMode.dark;
     notifyListeners();
   }
+
+  ThemeData? _currentTheme;
+
+  ThemeData? get currentTheme => _currentTheme;
+
+  void setLightTheme() {
+    _currentTheme = ThemeData(
+      primarySwatch: Colors.blue,
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF1E88E5),
+        brightness: Brightness.light,
+      ),
+    );
+    notifyListeners();
+  }
+
+  void setDarkTheme() {
+    _currentTheme = ThemeData(
+      primarySwatch: Colors.blue,
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF1E88E5),
+        brightness: Brightness.dark,
+      ),
+    );
+    notifyListeners();
+  }
 }

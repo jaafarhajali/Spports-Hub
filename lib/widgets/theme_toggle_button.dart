@@ -3,19 +3,31 @@ import 'package:provider/provider.dart';
 import '../themes/theme_controller.dart';
 
 class ThemeToggleButton extends StatelessWidget {
-  const ThemeToggleButton({super.key});
+  const ThemeToggleButton({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final themeController = Provider.of<ThemeController>(context);
-    final isDark = themeController.isDarkMode;
+    final themeProvider = Theme.of(context);
+    final isDarkMode = themeProvider.brightness == Brightness.dark;
 
-    return IconButton(
-      icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-      tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
-      onPressed: () {
-        themeController.toggleTheme();
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        // Use the provider to toggle the theme
+        Provider.of<ThemeController>(context, listen: false).toggleTheme();
       },
+      child: Container(
+        padding: const EdgeInsets.all(6), // Reduced padding
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(
+          isDarkMode ? Icons.light_mode : Icons.dark_mode,
+          size: 20, // Smaller icon
+          color: isDarkMode ? Colors.amber : Colors.indigo,
+        ),
+      ),
     );
   }
 }

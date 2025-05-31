@@ -149,10 +149,10 @@ class _SignInPageState extends State<SignInPage> {
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        // Form is valid, proceed with sign-in
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Processing Sign In')),
-                        );
+                       
+
+                        // Navigate to the Sports Hub after sign-in
+                        Navigator.pushReplacementNamed(context, '/sports_hub');
                       }
                     },
                     style: ElevatedButton.styleFrom(

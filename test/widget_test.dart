@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 
 // Import your main app
 import 'package:first_attempt/app.dart';
-import 'package:first_attempt/pages/signin_page.dart';
-import 'package:first_attempt/pages/signup_page.dart';
+import 'package:first_attempt/log%20page/signin_page.dart';
+import 'package:first_attempt/log%20page/signup_page.dart';
 import 'package:first_attempt/themes/theme_controller.dart';
 
 void main() {
