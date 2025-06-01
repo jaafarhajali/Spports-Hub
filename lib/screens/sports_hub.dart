@@ -115,25 +115,31 @@ class _SportsHubState extends State<SportsHub>
             // Custom app bar with title and search - Fixed overflow
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: _isSearchExpanded ? _buildExpandedSearchBar() : _buildAppBar(isDarkMode),
+              child:
+                  _isSearchExpanded
+                      ? _buildExpandedSearchBar()
+                      : _buildAppBar(isDarkMode),
             ),
 
             // Screen content
-            Expanded(child: _screens[_selectedIndex]),
+            Expanded(
+              child: IndexedStack(index: _selectedIndex, children: _screens),
+            ),
           ],
         ),
       ),
-      floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
-          ? FloatingActionButton(
-              onPressed: () {},
-              backgroundColor: colorScheme.primary,
-              elevation: 4,
-              child: Icon(
-                _selectedIndex == 2 ? Icons.add : Icons.calendar_today,
-                color: Colors.white,
-              ),
-            )
-          : null,
+      floatingActionButton:
+          _selectedIndex == 2 || _selectedIndex == 3
+              ? FloatingActionButton(
+                onPressed: () {},
+                backgroundColor: colorScheme.primary,
+                elevation: 4,
+                child: Icon(
+                  _selectedIndex == 2 ? Icons.add : Icons.calendar_today,
+                  color: Colors.white,
+                ),
+              )
+              : null,
       bottomNavigationBar: _buildBottomNavBar(isDarkMode, colorScheme),
     );
   }
@@ -230,7 +236,8 @@ class _SportsHubState extends State<SportsHub>
               child: Text(
                 _searchHints[_selectedIndex],
                 style: TextStyle(
-                  color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                  color:
+                      isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
                   fontSize: 12,
                 ),
                 maxLines: 1,
@@ -246,17 +253,14 @@ class _SportsHubState extends State<SportsHub>
   Widget _buildExpandedSearchBar() {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
+    return SizedBox(
       height: 40,
       child: Row(
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: _closeSearch,
-            constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
-            ),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             iconSize: 20,
           ),
           const SizedBox(width: 8),
@@ -273,7 +277,10 @@ class _SportsHubState extends State<SportsHub>
                 decoration: InputDecoration(
                   hintText: _searchHints[_selectedIndex],
                   hintStyle: TextStyle(
-                    color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                    color:
+                        isDarkMode
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                     fontSize: 12,
                   ),
                   border: InputBorder.none,
@@ -281,19 +288,23 @@ class _SportsHubState extends State<SportsHub>
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.clear,
-                            size: 16,
-                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
+                  suffixIcon:
+                      _searchController.text.isNotEmpty
+                          ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              size: 16,
+                              color:
+                                  isDarkMode
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                          : null,
                 ),
                 style: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black87,
@@ -317,6 +328,14 @@ class _SportsHubState extends State<SportsHub>
   }
 
   Widget _buildBottomNavBar(bool isDarkMode, ColorScheme colorScheme) {
+    // Use a more efficient way to build navigation items
+    final navItems = <Widget>[
+      _buildNavItem(0, Icons.home_rounded, 'Home'),
+      _buildNavItem(1, Icons.school_rounded, 'Academies'),
+      _buildNavItem(2, Icons.emoji_events_rounded, 'Tournaments'),
+      _buildNavItem(3, Icons.calendar_month_rounded, 'Booking'),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: isDarkMode ? colorScheme.surface : Colors.white,
@@ -338,10 +357,8 @@ class _SportsHubState extends State<SportsHub>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildNavItem(0, Icons.home_rounded, 'Home'),
-              _buildNavItem(1, Icons.school_rounded, 'Academies'),
-              _buildNavItem(2, Icons.emoji_events_rounded, 'Tournaments'),
-              _buildNavItem(3, Icons.calendar_month_rounded, 'Booking'),
+              ...navItems,
+              // Menu button
               InkWell(
                 onTap: () => _scaffoldKey.currentState?.openDrawer(),
                 borderRadius: BorderRadius.circular(16),
@@ -375,39 +392,36 @@ class _SportsHubState extends State<SportsHub>
         onTap: () => _onItemTapped(index),
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isSelected ? 12 : 8,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
             color: isSelected ? colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                color: isSelected
-                    ? Colors.white
-                    : isDarkMode
+                color:
+                    isSelected
+                        ? Colors.white
+                        : isDarkMode
                         ? Colors.white70
                         : Colors.black54,
                 size: 20,
               ),
+              // Only show text if this item is selected
               if (isSelected) ...[
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ],
             ],
@@ -519,10 +533,18 @@ class _SportsHubState extends State<SportsHub>
           _buildDrawerItem(context, Icons.favorite_border, 'Favorites'),
           _buildDrawerSection('Settings'),
           _buildDrawerItem(context, Icons.settings_outlined, 'Settings'),
-          _buildDrawerItem(context, Icons.notifications_outlined, 'Notifications'),
+          _buildDrawerItem(
+            context,
+            Icons.notifications_outlined,
+            'Notifications',
+          ),
           _buildDrawerSection('Host'),
           _buildDrawerItem(context, Icons.stadium_outlined, 'Add Facility'),
-          _buildDrawerItem(context, Icons.emoji_events_outlined, 'Create Tournament'),
+          _buildDrawerItem(
+            context,
+            Icons.emoji_events_outlined,
+            'Create Tournament',
+          ),
           const Divider(),
           _buildDrawerItem(context, Icons.help_outline, 'Help & Support'),
           _buildDrawerItem(context, Icons.logout_outlined, 'Logout'),
