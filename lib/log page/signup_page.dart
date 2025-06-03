@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/theme_toggle_button.dart';
+import '../auth_service.dart'; // Import the auth service
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -19,6 +20,8 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
+  bool _isLoading = false; // Add loading state
+  final _authService = AuthService(); // Initialize auth service
 
   @override
   void dispose() {
@@ -28,6 +31,77 @@ class _SignUpPageState extends State<SignUpPage> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  // Handle registration
+  Future<void> _handleSignUp() async {
+    if (_formKey.currentState!.validate()) {
+      if (!_agreeToTerms) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please agree to terms and conditions'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Create user data map
+        final userData = {
+          'username': _usernameController.text,
+          'email': _emailController.text,
+          'password': _passwordController.text,
+          'passwordConfirm': _confirmPasswordController.text,
+          'phoneNumber': _phoneController.text,
+          'termsAccepted': _agreeToTerms,
+          'role': {'name': 'user'}, // Default role
+        };
+
+        // Register user
+        final result = await _authService.register(userData);
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Check registration result
+        if (result.containsKey('token')) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Account created successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to sign in page
+          Navigator.pushReplacementNamed(context, '/signin');
+        } else {
+          // Show error message
+          final errorMessage = result['message'] ?? 'Registration failed';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An error occurred: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -250,32 +324,24 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   SizedBox(height: 10),
                   ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        if (!_agreeToTerms) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Please agree to terms and conditions',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        // Form is valid, proceed with sign up
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Processing Sign Up')),
-                        );
-                      }
-                    },
+                    onPressed: _isLoading ? null : _handleSignUp,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 16),
+                      disabledBackgroundColor: Colors.teal.withOpacity(0.5),
                     ),
-                    child: Text('Sign Up'),
+                    child:
+                        _isLoading
+                            ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : Text('Sign Up'),
                   ),
                   SizedBox(height: 10),
                   Row(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/theme_toggle_button.dart';
+import '../auth_service.dart'; // Add this import
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -14,6 +15,8 @@ class _SignInPageState extends State<SignInPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  final _authService = AuthService(); // Add this
+  bool _isLoading = false; // Add this
 
   @override
   void dispose() {
@@ -147,20 +150,93 @@ class _SignInPageState extends State<SignInPage> {
                   ),
                   SizedBox(height: 10),
                   ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                       
+                    onPressed:
+                        _isLoading
+                            ? null
+                            : () async {
+                              if (_formKey.currentState!.validate()) {
+                                try {
+                                  setState(() {
+                                    _isLoading = true;
+                                  });
 
-                        // Navigate to the Sports Hub after sign-in
-                        Navigator.pushReplacementNamed(context, '/sports_hub');
-                      }
-                    },
+                                  // Add logging to help debug
+                                  print(
+                                    'Attempting login with username: ${_usernameController.text}',
+                                  );
+
+                                  final result = await _authService.login(
+                                    _usernameController.text,
+                                    _passwordController.text,
+                                  );
+
+                                  print('Login result: $result');
+
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+
+                                  if (result['success'] == true ||
+                                      result.containsKey('token')) {
+                                    // Show success message
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Sign in successful!'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+
+                                    // Navigate to the home page
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/sports_hub',
+                                    );
+                                  } else {
+                                    // Show error message
+                                    final errorMessage =
+                                        result['message'] ?? 'Login failed';
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(errorMessage),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  print('Login exception: ${e.toString()}');
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+
+                                  // Show detailed error message
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Connection error: ${e.toString()}',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 16),
+                      disabledBackgroundColor: Colors.teal.withOpacity(0.5),
                     ),
-                    child: Text('Sign In'),
+                    child:
+                        _isLoading
+                            ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : Text('Sign In'),
                   ),
                   SizedBox(height: 10),
                   Row(
