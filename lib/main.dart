@@ -23,13 +23,16 @@ class SportsHubApp extends StatelessWidget {
     final themeController = Provider.of<ThemeController>(context);
 
     return MaterialApp(
-      title: 'Sports Hub App',
+      title: 'Sports Hub',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeController.themeMode,
-      home: const SignInPage(),
+
+      initialRoute: '/signin', // Start with signin page
+
       routes: {
         '/sports_hub': (context) => const SportsHub(),
+        '/signin': (context) => const SignInPage(),
         '/signup': (context) => const SignUpPage(),
       },
       debugShowCheckedModeBanner: false,

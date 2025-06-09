@@ -5,6 +5,7 @@ import 'tournaments_screen.dart';
 import 'booking_screen.dart';
 
 import '../widgets/theme_toggle_button.dart';
+import '../log page/signin_page.dart'; // Add this import
 
 class SportsHub extends StatefulWidget {
   const SportsHub({super.key});
@@ -581,10 +582,15 @@ class _SportsHubState extends State<SportsHub>
         ),
       ),
       onTap: () {
-        Navigator.pop(context);
+        Navigator.pop(context); // Close the drawer
+
         // Handle navigation or action
         if (title == 'Logout') {
-          Navigator.pushReplacementNamed(context, '/signin');
+          // Use this approach for more reliable navigation:
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => SignInPage()),
+            (route) => false, // This clears the navigation stack
+          );
         }
       },
     );
