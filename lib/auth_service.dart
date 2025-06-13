@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final String baseUrl =
-      'http://192.168.0.106:8080/api/auth'; // Replace with your IP
+      'http://192.168.0.106:8080/api/auth'; // Local development
+  // For production, use something like:
+  // final String baseUrl = 'https://your-production-domain.com/api/auth';
 
   // Store token
   Future<void> storeToken(String token) async {
