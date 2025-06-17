@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'academies_screen.dart';
 import 'tournaments_screen.dart';
-import 'booking_screen.dart';
+import 'stadiums_screen.dart'; // This still points to the same file
 
 import '../widgets/theme_toggle_button.dart';
 import '../log page/signin_page.dart'; // Add this import
@@ -29,28 +29,28 @@ class _SportsHubState extends State<SportsHub>
     const HomeScreen(),
     const AcademiesScreen(),
     const TournamentsScreen(),
-    const BookingScreen(),
+    const StadiumsScreen(),
   ];
 
   final List<String> _screenTitles = [
     'Sports Hub',
     'Academies',
     'Tournaments',
-    'Book a Facility',
+    'Stadiums',
   ];
 
   final List<String> _screenSubtitles = [
     'Find and book sports facilities',
     'Browse sports academies',
     'Find and join tournaments',
-    'Book available facilities',
+    'Find and book available stadiums',
   ];
 
   final List<String> _searchHints = [
     'Search facilities, academies, events...',
     'Search academies...',
     'Search tournaments...',
-    'Search facilities...',
+    'Search stadiums...',
   ];
 
   @override
@@ -334,7 +334,11 @@ class _SportsHubState extends State<SportsHub>
       _buildNavItem(0, Icons.home_rounded, 'Home'),
       _buildNavItem(1, Icons.school_rounded, 'Academies'),
       _buildNavItem(2, Icons.emoji_events_rounded, 'Tournaments'),
-      _buildNavItem(3, Icons.calendar_month_rounded, 'Booking'),
+      _buildNavItem(
+        3,
+        Icons.stadium_outlined,
+        'Stadiums',
+      ), // Changed to stadium icon
     ];
 
     return Container(
@@ -388,6 +392,13 @@ class _SportsHubState extends State<SportsHub>
     final colorScheme = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
+    // Use filled stadium icon when selected for the Stadiums tab
+    final displayIcon =
+        (index == 3 && isSelected)
+            ? Icons
+                .stadium // Filled version when selected
+            : icon;
+
     return Flexible(
       child: InkWell(
         onTap: () => _onItemTapped(index),
@@ -402,7 +413,7 @@ class _SportsHubState extends State<SportsHub>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                icon,
+                displayIcon, // Use the appropriate icon based on selection
                 color:
                     isSelected
                         ? Colors.white
