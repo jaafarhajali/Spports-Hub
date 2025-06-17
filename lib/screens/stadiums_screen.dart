@@ -399,7 +399,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '\$${stadium.pricePerHour.toStringAsFixed(0)}/match',
+                        '${stadium.pricePerHour.toStringAsFixed(0)} LBP/match',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
