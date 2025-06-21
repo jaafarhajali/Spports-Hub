@@ -6,6 +6,7 @@ import 'stadiums_screen.dart'; // This still points to the same file
 
 import '../widgets/theme_toggle_button.dart';
 import '../log page/signin_page.dart'; // Add this import
+import '../auth_service.dart'; // Add this import
 
 class SportsHub extends StatefulWidget {
   const SportsHub({super.key});
@@ -19,6 +20,12 @@ class _SportsHubState extends State<SportsHub>
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late AnimationController _animationController;
+  final AuthService _authService = AuthService();
+
+  // User data
+  String _userName = '';
+  String _userEmail = '';
+  String _userImage = '';
 
   // For search bar animation
   bool _isSearchExpanded = false;
@@ -52,7 +59,6 @@ class _SportsHubState extends State<SportsHub>
     'Search tournaments...',
     'Search stadiums...',
   ];
-
   @override
   void initState() {
     super.initState();
@@ -69,6 +75,30 @@ class _SportsHubState extends State<SportsHub>
         _animationController.forward();
       }
     });
+
+    // Load user data
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final userData = await _authService.getUserData();
+    setState(() {
+      _userName = userData['name'] ?? '';
+      _userEmail = userData['email'] ?? '';
+      _userImage = userData['image'] ?? '';
+    });
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+
+    List<String> nameParts = name.trim().split(' ');
+    if (nameParts.length == 1) {
+      return nameParts[0].substring(0, 1).toUpperCase();
+    } else {
+      return (nameParts[0].substring(0, 1) + nameParts[1].substring(0, 1))
+          .toUpperCase();
+    }
   }
 
   @override
@@ -334,11 +364,7 @@ class _SportsHubState extends State<SportsHub>
       _buildNavItem(0, Icons.home_rounded, 'Home'),
       _buildNavItem(1, Icons.school_rounded, 'Academies'),
       _buildNavItem(2, Icons.emoji_events_rounded, 'Tournaments'),
-      _buildNavItem(
-        3,
-        Icons.stadium_outlined,
-        'Stadiums',
-      ), // Changed to stadium icon
+      _buildNavItem(3, Icons.stadium, 'Stadiums'),
     ];
 
     return Container(
@@ -392,13 +418,6 @@ class _SportsHubState extends State<SportsHub>
     final colorScheme = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Use filled stadium icon when selected for the Stadiums tab
-    final displayIcon =
-        (index == 3 && isSelected)
-            ? Icons
-                .stadium // Filled version when selected
-            : icon;
-
     return Flexible(
       child: InkWell(
         onTap: () => _onItemTapped(index),
@@ -413,7 +432,7 @@ class _SportsHubState extends State<SportsHub>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                displayIcon, // Use the appropriate icon based on selection
+                icon, // Use the same icon for both selected and unselected
                 color:
                     isSelected
                         ? Colors.white
@@ -471,19 +490,29 @@ class _SportsHubState extends State<SportsHub>
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.person,
-                        size: 40,
-                        color: colorScheme.primary.withAlpha(179),
-                      ),
+                      backgroundImage:
+                          _userImage.isNotEmpty
+                              ? NetworkImage(_userImage)
+                              : null,
+                      child:
+                          _userImage.isEmpty
+                              ? Text(
+                                _getInitials(_userName),
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary.withAlpha(179),
+                                ),
+                              )
+                              : null,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'John Doe',
+                          Text(
+                            _userName.isNotEmpty ? _userName : 'Guest User',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -525,7 +554,9 @@ class _SportsHubState extends State<SportsHub>
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          'user@example.com',
+                          _userEmail.isNotEmpty
+                              ? _userEmail
+                              : 'guest@example.com',
                           style: TextStyle(
                             color: Colors.white.withAlpha(230),
                             fontSize: 12,
@@ -542,9 +573,6 @@ class _SportsHubState extends State<SportsHub>
           _buildDrawerSection('Account'),
           _buildDrawerItem(context, Icons.person_outline, 'My Profile'),
           _buildDrawerItem(context, Icons.history, 'Booking History'),
-          _buildDrawerItem(context, Icons.favorite_border, 'Favorites'),
-          _buildDrawerSection('Settings'),
-          _buildDrawerItem(context, Icons.settings_outlined, 'Settings'),
           _buildDrawerItem(
             context,
             Icons.notifications_outlined,
@@ -558,7 +586,6 @@ class _SportsHubState extends State<SportsHub>
             'Create Tournament',
           ),
           const Divider(),
-          _buildDrawerItem(context, Icons.help_outline, 'Help & Support'),
           _buildDrawerItem(context, Icons.logout_outlined, 'Logout'),
         ],
       ),
@@ -597,6 +624,9 @@ class _SportsHubState extends State<SportsHub>
 
         // Handle navigation or action
         if (title == 'Logout') {
+          // Clear user data using AuthService
+          _authService.logout();
+
           // Use this approach for more reliable navigation:
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => SignInPage()),

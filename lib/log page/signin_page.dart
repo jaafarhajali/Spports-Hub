@@ -17,6 +17,20 @@ class _SignInPageState extends State<SignInPage> {
   bool _rememberMe = false;
   final _authService = AuthService(); // Add this
   bool _isLoading = false; // Add this
+  @override
+  void initState() {
+    super.initState();
+    _checkAutoLogin();
+  }
+
+  // Check if user should be automatically logged in
+  Future<void> _checkAutoLogin() async {
+    final shouldStayLoggedIn = await _authService.shouldStayLoggedIn();
+    if (shouldStayLoggedIn) {
+      // User has valid token and remember me is enabled
+      Navigator.pushReplacementNamed(context, '/sports_hub');
+    }
+  }
 
   @override
   void dispose() {
@@ -159,6 +173,9 @@ class _SignInPageState extends State<SignInPage> {
                                   setState(() {
                                     _isLoading = true;
                                   });
+
+                                  // Save remember me preference
+                                  await _authService.setRememberMe(_rememberMe);
 
                                   // Add logging to help debug
                                   print(
