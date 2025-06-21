@@ -1,12 +1,13 @@
 // lib/services/stadium_service.dart
 import 'dart:convert';
+import 'package:first_attempt/services/app_config.dart';
 import 'package:http/http.dart' as http;
 import '../models/stadium.dart';
 import '../auth_service.dart';
 
 class StadiumService {
-  final String baseUrl =
-      'http://192.168.0.106:8080/api'; // Use same base URL as auth
+  final String baseUrl = AppConfig.apiUrl;
+  
   final AuthService _authService = AuthService();
 
   // Get all stadiums

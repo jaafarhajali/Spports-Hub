@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/academy.dart';
 import '../auth_service.dart';
+import '../services/app_config.dart';
 
 class AcademyService {
-  final String baseUrl =
-      'http://192.168.0.106:8080/api'; // Match your backend URL
+  final String baseUrl = AppConfig.apiUrl; // Match your backend URL
   final AuthService _authService = AuthService();
 
   // Get all academies

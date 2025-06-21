@@ -1,12 +1,10 @@
 import 'dart:convert';
+import 'package:first_attempt/services/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  final String baseUrl =
-      'http://192.168.0.106:8080/api/auth'; // Local development
-  // For production, use something like:
-  // final String baseUrl = 'https://your-production-domain.com/api/auth';
+  final String baseUrl = '${AppConfig.apiUrl}/auth';
 
   // Store token
   Future<void> storeToken(String token) async {
