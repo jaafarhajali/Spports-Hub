@@ -3,6 +3,7 @@ import 'home_screen.dart';
 import 'academies_screen.dart';
 import 'tournaments_screen.dart';
 import 'stadiums_screen.dart'; // This still points to the same file
+import 'booking_history_screen.dart';
 
 import '../widgets/theme_toggle_button.dart';
 import '../log page/signin_page.dart'; // Add this import
@@ -160,15 +161,12 @@ class _SportsHubState extends State<SportsHub>
         ),
       ),
       floatingActionButton:
-          _selectedIndex == 2 || _selectedIndex == 3
+          _selectedIndex == 2
               ? FloatingActionButton(
                 onPressed: () {},
                 backgroundColor: colorScheme.primary,
                 elevation: 4,
-                child: Icon(
-                  _selectedIndex == 2 ? Icons.add : Icons.calendar_today,
-                  color: Colors.white,
-                ),
+                child: Icon(Icons.add, color: Colors.white),
               )
               : null,
       bottomNavigationBar: _buildBottomNavBar(isDarkMode, colorScheme),
@@ -623,7 +621,13 @@ class _SportsHubState extends State<SportsHub>
         Navigator.pop(context); // Close the drawer
 
         // Handle navigation or action
-        if (title == 'Logout') {
+        if (title == 'Booking History') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const BookingHistoryScreen(),
+            ),
+          );
+        } else if (title == 'Logout') {
           // Clear user data using AuthService
           _authService.logout();
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/stadium.dart';
 import '../services/stadium_service.dart';
+import '../services/booking_service.dart';
 
 // Change class name from BookingScreen to StadiumsScreen
 class StadiumsScreen extends StatefulWidget {
@@ -16,10 +17,12 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   String _selectedSport = 'All';
   int _selectedTimeSlot = 0;
   bool _isLoading = true;
+  bool _isBooking = false;
   String? _errorMessage;
   List<Stadium> _allStadiums = [];
   List<Stadium> _filteredStadiums = [];
   final StadiumService _stadiumService = StadiumService();
+  final BookingService _bookingService = BookingService();
 
   // List of available sports for filtering
   final List<String> _sportTypes = [
@@ -158,6 +161,8 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                 onTap: () {
                   setState(() {
                     _selectedDateIndex = index;
+                    _selectedTimeSlot =
+                        0; // Reset time slot selection when date changes
                   });
                 },
                 child: _buildDateItem(date, isSelected),
@@ -347,11 +352,6 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
 
   // Build an individual facility card
   Widget _buildFacilityCard(Stadium stadium) {
-    final timeSlots = _generateTimeSlots(
-      stadium.workingHours['start'] ?? '09:00',
-      stadium.workingHours['end'] ?? '18:00',
-    );
-
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -399,7 +399,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                        '${stadium.pricePerHour.toStringAsFixed(0)} LBP/match',
+                      '${stadium.pricePerMatch.toStringAsFixed(0)} LBP/match',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -488,62 +488,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                   'Available Time Slots',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-
                 const SizedBox(height: 8),
 
-                // Time slot selection
-                SizedBox(
-                  height: 40,
-                  child:
-                      timeSlots.isEmpty
-                          ? const Center(
-                            child: Text(
-                              'No time slots available',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          )
-                          : ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: timeSlots.length,
-                            itemBuilder: (context, index) {
-                              final isSelected = index == _selectedTimeSlot;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedTimeSlot = index;
-                                  });
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? Theme.of(
-                                              context,
-                                            ).colorScheme.primary
-                                            : Colors.grey.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    timeSlots[index],
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.white : null,
-                                      fontWeight:
-                                          isSelected ? FontWeight.bold : null,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                ),
+                // Time slot selection - Use stadium calendar data
+                _buildAvailableTimeSlots(stadium),
 
                 const SizedBox(height: 16),
 
@@ -552,20 +500,8 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                   height: 50,
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      final selectedDate = _availableDates[_selectedDateIndex];
-                      final selectedTime =
-                          timeSlots.isNotEmpty
-                              ? timeSlots[_selectedTimeSlot]
-                              : '10:00 AM';
-
-                      _navigateToBookingDetails(
-                        stadium.id,
-                        selectedDate,
-                        selectedTime,
-                        stadium.pricePerHour,
-                      );
-                    },
+                    onPressed:
+                        _isBooking ? null : () => _createBooking(stadium),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
@@ -573,13 +509,23 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-                    child: const Text(
-                      'Book Now',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child:
+                        _isBooking
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : const Text(
+                              'Book Now',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                 ),
               ],
@@ -588,79 +534,246 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
         ],
       ),
     );
+  } // Build available time slots using stadium calendar data
+
+  Widget _buildAvailableTimeSlots(Stadium stadium) {
+    final selectedDate = _availableDates[_selectedDateIndex];
+    final availableSlots = stadium.getAvailableSlots(selectedDate);
+    if (availableSlots.isEmpty) {
+      return Container(
+        height: 40,
+        child: const Center(
+          child: Text(
+            'No time slots available for this date',
+            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
+
+    // Ensure selected time slot is within bounds
+    if (_selectedTimeSlot >= availableSlots.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _selectedTimeSlot = 0;
+        });
+      });
+    }
+
+    return SizedBox(
+      height: 40,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: availableSlots.length,
+        itemBuilder: (context, index) {
+          final isSelected = index == _selectedTimeSlot;
+          final slot = availableSlots[index];
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedTimeSlot = index;
+              });
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                slot.startTime,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : null,
+                  fontWeight: isSelected ? FontWeight.bold : null,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  } // Create booking using backend API
+
+  Future<void> _createBooking(Stadium stadium) async {
+    final selectedDate = _availableDates[_selectedDateIndex];
+    final availableSlots = stadium.getAvailableSlots(selectedDate);
+
+    if (availableSlots.isEmpty) {
+      _showErrorSnackBar('No time slots available for this date');
+      return;
+    }
+
+    if (_selectedTimeSlot >= availableSlots.length) {
+      _showErrorSnackBar('Selected time slot is not valid');
+      return;
+    }
+
+    final selectedSlot = availableSlots[_selectedTimeSlot];
+
+    // Show booking confirmation dialog
+    final confirmed = await _showBookingConfirmationDialog(
+      stadium,
+      selectedDate,
+      selectedSlot.startTime,
+    );
+
+    if (!confirmed) return;
+
+    setState(() {
+      _isBooking = true;
+    });
+
+    try {
+      final result = await _bookingService.createBooking(
+        stadiumId: stadium.id,
+        matchDate: selectedDate,
+        timeSlot: selectedSlot.startTime,
+      );
+
+      if (result['success']) {
+        _showSuccessSnackBar('Booking created successfully!');
+        _navigateToBookingDetails(result['data']);
+        // Refresh stadium data to update availability
+        _loadStadiums();
+      } else {
+        _showErrorSnackBar(result['message'] ?? 'Failed to create booking');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error creating booking: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isBooking = false;
+      });
+    }
   }
 
-  // Navigate to booking details screen
-  void _navigateToBookingDetails(
-    String stadiumId,
+  // Show booking confirmation dialog
+  Future<bool> _showBookingConfirmationDialog(
+    Stadium stadium,
     DateTime date,
     String timeSlot,
-    double price,
-  ) {
-    print('Navigating to booking details:');
-    print('Stadium ID: $stadiumId');
-    print('Date: $date');
-    print('Time Slot: $timeSlot');
-    print('Price: \$${price.toStringAsFixed(2)}');
-
-    // TODO: Implement navigation to booking details screen
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => BookingDetailsScreen(
-    //       stadiumId: stadiumId,
-    //       date: date,
-    //       timeSlot: timeSlot,
-    //       price: price,
-    //     ),
-    //   ),
-    // );
+  ) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Confirm Booking'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Stadium: ${_capitalizeEachWord(stadium.name)}'),
+                  const SizedBox(height: 8),
+                  Text('Date: ${_formatDate(date)}'),
+                  const SizedBox(height: 8),
+                  Text('Time: $timeSlot'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Price: ${stadium.pricePerMatch.toStringAsFixed(0)} LBP',
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Are you sure you want to book this stadium?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Confirm'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 
-  // Build placeholder image for stadiums without photos
-  Widget _buildPlaceholderImage(Stadium stadium) {
-    return Container(
-      height: 160,
-      width: double.infinity,
-      color: Colors.grey.shade300,
-      child: Center(
-        child: Icon(
-          _getSportIcon(_getSportTypeFromName(stadium.name)),
-          size: 64,
-          color: Colors.grey.shade600,
-        ),
+  // Navigate to booking details
+  void _navigateToBookingDetails(Map<String, dynamic> bookingData) {
+    print('Booking created: $bookingData');
+
+    // Show success dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Booking Successful!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Booking ID: ${bookingData['_id']}'),
+              const SizedBox(height: 8),
+              Text('Status: ${bookingData['status']}'),
+              const SizedBox(height: 8),
+              const Text('You will receive a confirmation shortly.'),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Helper methods for UI feedback
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
-  // Generate time slots based on working hours
-  List<String> _generateTimeSlots(String start, String end) {
-    final List<String> slots = [];
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
-    // Parse start and end times
-    final startParts = start.split(':');
-    final endParts = end.split(':');
-
-    if (startParts.length < 2 || endParts.length < 2) {
-      return ['10:00 AM', '11:00 AM', '12:00 PM']; // Default fallback
-    }
-
-    int startHour = int.tryParse(startParts[0]) ?? 9;
-    int endHour = int.tryParse(endParts[0]) ?? 18;
-
-    // If end time is 00:00, treat as 24:00
-    if (endHour == 0) {
-      endHour = 24;
-    }
-
-    // Generate hourly slots
-    for (int hour = startHour; hour < endHour; hour++) {
-      final displayHour = hour % 12 == 0 ? 12 : hour % 12;
-      final amPm = hour < 12 ? 'AM' : 'PM';
-      slots.add('$displayHour:00 $amPm');
-    }
-
-    return slots;
+  // Format date for display
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   // Helper method to determine sport type from stadium name
@@ -765,5 +878,47 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
           return word[0].toUpperCase() + word.substring(1);
         })
         .join(' ');
+  }
+
+  // Build placeholder image for stadiums without photos
+  Widget _buildPlaceholderImage(Stadium stadium) {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary.withOpacity(0.8),
+            Theme.of(context).colorScheme.primary.withOpacity(0.6),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getSportIcon(_getSportTypeFromName(stadium.name)),
+              size: 48,
+              color: Colors.white,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _capitalizeEachWord(stadium.name),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
