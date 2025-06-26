@@ -4,10 +4,12 @@ import 'academies_screen.dart';
 import 'tournaments_screen.dart';
 import 'stadiums_screen.dart'; // This still points to the same file
 import 'booking_history_screen.dart';
+import 'profile_screen.dart';
 
 import '../widgets/theme_toggle_button.dart';
 import '../log page/signin_page.dart'; // Add this import
 import '../auth_service.dart'; // Add this import
+import '../services/user_service.dart'; // Add this import
 
 class SportsHub extends StatefulWidget {
   const SportsHub({super.key});
@@ -22,6 +24,7 @@ class _SportsHubState extends State<SportsHub>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late AnimationController _animationController;
   final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
 
   // User data
   String _userName = '';
@@ -82,12 +85,27 @@ class _SportsHubState extends State<SportsHub>
   }
 
   Future<void> _loadUserData() async {
-    final userData = await _authService.getUserData();
-    setState(() {
-      _userName = userData['name'] ?? '';
-      _userEmail = userData['email'] ?? '';
-      _userImage = userData['image'] ?? '';
-    });
+    try {
+      final userProfile = await _userService.getUserProfile();
+      if (userProfile != null) {
+        final profileImageUrl = _userService.getProfilePhotoUrl(
+          userProfile['profilePhoto'],
+        );
+        setState(() {
+          _userName = userProfile['username'] ?? '';
+          _userEmail = userProfile['email'] ?? '';
+          _userImage = profileImageUrl ?? '';
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+      // Fallback to default values
+      setState(() {
+        _userName = '';
+        _userEmail = '';
+        _userImage = '';
+      });
+    }
   }
 
   String _getInitials(String name) {
@@ -621,7 +639,16 @@ class _SportsHubState extends State<SportsHub>
         Navigator.pop(context); // Close the drawer
 
         // Handle navigation or action
-        if (title == 'Booking History') {
+        if (title == 'My Profile') {
+          Navigator.of(context)
+              .push(
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              )
+              .then((_) {
+                // Refresh user data when returning from profile screen
+                _loadUserData();
+              });
+        } else if (title == 'Booking History') {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const BookingHistoryScreen(),

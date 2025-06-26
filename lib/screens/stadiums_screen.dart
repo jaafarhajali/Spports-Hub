@@ -540,7 +540,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     final selectedDate = _availableDates[_selectedDateIndex];
     final availableSlots = stadium.getAvailableSlots(selectedDate);
     if (availableSlots.isEmpty) {
-      return Container(
+      return SizedBox(
         height: 40,
         child: const Center(
           child: Text(
