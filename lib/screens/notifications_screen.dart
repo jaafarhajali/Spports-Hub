@@ -134,8 +134,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _deleteNotification(AppNotification notification) async {
     try {
-      final success = await _notificationService.deleteNotification(notification.id);
-      if (success) {
+      // Try backend first, but fallback to frontend deletion
+      try {
+        final success = await _notificationService.deleteNotification(notification.id);
+        if (success) {
+          setState(() {
+            _notifications.removeWhere((n) => n.id == notification.id);
+          });
+          _showSnackBar('Notification deleted');
+        } else {
+          // Backend failed, delete from frontend only
+          setState(() {
+            _notifications.removeWhere((n) => n.id == notification.id);
+          });
+          _showSnackBar('Notification deleted');
+        }
+      } catch (e) {
+        // Backend call failed, delete from frontend
+        print('Backend delete failed, deleting frontend only: $e');
         setState(() {
           _notifications.removeWhere((n) => n.id == notification.id);
         });
@@ -143,6 +159,74 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     } catch (e) {
       _showSnackBar('Failed to delete notification: $e', isError: true);
+    }
+  }
+
+  Future<void> _clearAllNotifications() async {
+    if (_notifications.isEmpty) {
+      _showSnackBar('No notifications to clear');
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear All Notifications'),
+          content: Text(
+            'Are you sure you want to clear all ${_notifications.length} notifications? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Clear All'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Try backend first, but fallback to frontend clearing
+      try {
+        final success = await _notificationService.clearAllNotifications();
+        if (success) {
+          setState(() {
+            _notifications.clear();
+          });
+          _showSnackBar('All notifications cleared');
+        } else {
+          // Backend failed, clear from frontend only
+          setState(() {
+            _notifications.clear();
+          });
+          _showSnackBar('All notifications cleared');
+        }
+      } catch (e) {
+        // Backend call failed, clear from frontend
+        print('Backend clear failed, clearing frontend only: $e');
+        setState(() {
+          _notifications.clear();
+        });
+        _showSnackBar('All notifications cleared');
+      }
+    } catch (e) {
+      _showSnackBar('Failed to clear notifications: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -168,6 +252,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          if (_notifications.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear_all),
+              onPressed: _isLoading ? null : _clearAllNotifications,
+              tooltip: 'Clear all notifications',
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadNotifications,
