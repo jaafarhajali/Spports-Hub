@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:first_attempt/services/user_service.dart';
 import 'package:first_attempt/widgets/user_profile_avatar.dart';
+import 'package:first_attempt/utils/image_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,8 +24,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Map<String, dynamic>? _userProfile;
   File? _selectedImage;
+  Uint8List? _selectedImageBytes; // For web support
   bool _isLoading = false;
   bool _isEditing = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -58,25 +63,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 512,
-      maxHeight: 512,
-      imageQuality: 85,
-    );
+    try {
+      // Show image source selection dialog
+      final ImageSource? source = await _showImageSourceDialog();
+      if (source == null) return;
 
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        if (kIsWeb) {
+          // For web, read as bytes
+          final bytes = await image.readAsBytes();
+          
+          // Validate image bytes
+          final validation = ImageUtils.validateImageBytes(bytes);
+          if (validation != null) {
+            _showSnackBar(validation, isError: true);
+            return;
+          }
+          
+          setState(() {
+            _selectedImageBytes = bytes;
+            _selectedImage = null; // Clear file reference for web
+          });
+        } else {
+          // For mobile, use file
+          final file = File(image.path);
+          
+          // Validate image file
+          final validation = ImageUtils.validateImageFile(file);
+          if (validation != null) {
+            _showSnackBar(validation, isError: true);
+            return;
+          }
+          
+          setState(() {
+            _selectedImage = file;
+            _selectedImageBytes = null; // Clear bytes reference for mobile
+          });
+        }
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      _showSnackBar('Failed to pick image: $e', isError: true);
     }
+  }
+
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+              if (!kIsWeb) // Camera is not available on web
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isUploadingImage = _selectedImage != null || _selectedImageBytes != null;
+    });
 
     try {
       final result = await _userService.updateProfile(
@@ -84,6 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         email: _emailController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         profilePhoto: _selectedImage,
+        profilePhotoBytes: _selectedImageBytes,
       );
 
       if (result['success']) {
@@ -103,6 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Now clear the selected image after reload
         setState(() {
           _selectedImage = null;
+          _selectedImageBytes = null;
         });
       } else {
         _showSnackBar(result['message'] ?? 'Update failed', isError: true);
@@ -110,7 +190,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       _showSnackBar('Failed to update profile: $e', isError: true);
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isUploadingImage = false;
+      });
     }
   }
 
@@ -143,10 +226,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           if (_isEditing)
             TextButton(
-              onPressed:
-                  () => setState(() {
+              onPressed: () => setState(() {
                     _isEditing = false;
                     _selectedImage = null;
+                    _selectedImageBytes = null;
                     // Reset form
                     _usernameController.text = _userProfile?['username'] ?? '';
                     _emailController.text = _userProfile?['email'] ?? '';
@@ -187,6 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildProfileCard(colorScheme, isDarkMode),
                       const SizedBox(height: 24),
                       if (_isEditing) _buildActionButtons(colorScheme),
+                      if (!_isEditing) _buildTestSection(colorScheme),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -214,6 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           UserProfileAvatar(
             userProfile: _userProfile,
             selectedImage: _selectedImage,
+            selectedImageBytes: _selectedImageBytes,
             isEditing: _isEditing,
             onImagePick: _pickImage,
             userService: _userService,
@@ -458,23 +543,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child:
-                _isLoading
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            child: _isLoading
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
                       ),
-                    )
-                    : const Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(width: 12),
+                      Text(
+                        _isUploadingImage ? 'Uploading Image...' : 'Saving...',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
+                    ],
+                  )
+                : const Text(
+                    'Save Changes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
           ),
         ),
       ],
@@ -489,5 +586,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       return 'N/A';
     }
+  }
+
+  Widget _buildTestSection(ColorScheme colorScheme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Profile Photo Testing',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => _testImageDisplay(),
+              icon: const Icon(Icons.image),
+              label: const Text('Test Image Display'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.secondary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Current profile photo: ${_userProfile?['profilePhoto'] ?? 'None'}',
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _testImageDisplay() {
+    final testUrl = _userService.getTestProfilePhotoUrl();
+    _showSnackBar('Test image URL: $testUrl');
+    
+    // Also show in dialog for better visibility
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Profile Photo Test'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Test URL: $testUrl'),
+            const SizedBox(height: 16),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  testUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(Icons.error, color: Colors.red),
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 }

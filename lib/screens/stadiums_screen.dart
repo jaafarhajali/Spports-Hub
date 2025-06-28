@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/stadium.dart';
 import '../services/stadium_service.dart';
 import '../services/booking_service.dart';
+import '../services/app_config.dart';
 
 // Change class name from BookingScreen to StadiumsScreen
 class StadiumsScreen extends StatefulWidget {
@@ -372,10 +373,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: Stack(
               children: [
-                // Stadium image
+                // Stadium image with proper backend URL handling
                 stadium.photos.isNotEmpty
                     ? Image.network(
-                      stadium.photos.first,
+                      _getImageUrl(stadium.photos.first),
                       height: 160,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -920,5 +921,21 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
         ),
       ),
     );
+  }
+
+  // Helper method to construct proper image URL
+  String _getImageUrl(String photoPath) {
+    // If the path already starts with http, return as is
+    if (photoPath.startsWith('http')) {
+      return photoPath;
+    }
+    
+    // If it's a relative path starting with /images, construct full URL
+    if (photoPath.startsWith('/images')) {
+      return '${AppConfig.apiUrl}$photoPath';
+    }
+    
+    // If it's just a filename, assume it's in the stadium images directory
+    return '${AppConfig.apiUrl}/images/stadiumsImages/$photoPath';
   }
 }

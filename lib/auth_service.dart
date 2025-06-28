@@ -12,6 +12,11 @@ class AuthService {
     await prefs.setString('auth_token', token);
   }
 
+  // Save token (alias for storeToken for consistency with team service)
+  Future<void> saveToken(String token) async {
+    await storeToken(token);
+  }
+
   // Get token
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -147,6 +152,50 @@ class AuthService {
     } catch (e) {
       print('Login error: ${e.toString()}');
       return {'success': false, 'message': 'Connection error: ${e.toString()}'};
+    }
+  }
+
+  // Get user role from stored token
+  Future<String?> getUserRole() async {
+    try {
+      final token = await getToken();
+      if (token == null) return null;
+      
+      // Decode JWT token to get user role
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final Map<String, dynamic> data = jsonDecode(decoded);
+      
+      return data['role']?.toString();
+    } catch (e) {
+      print('Error getting user role: $e');
+      return null;
+    }
+  }
+
+  // Get user ID from stored token
+  Future<String?> getUserId() async {
+    try {
+      final token = await getToken();
+      if (token == null) return null;
+      
+      // Decode JWT token to get user ID
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final Map<String, dynamic> data = jsonDecode(decoded);
+      
+      return data['userId']?.toString() ?? data['id']?.toString();
+    } catch (e) {
+      print('Error getting user ID: $e');
+      return null;
     }
   }
 

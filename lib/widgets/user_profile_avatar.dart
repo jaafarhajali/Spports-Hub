@@ -1,11 +1,13 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // Add this for kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:first_attempt/services/user_service.dart';
 
 class UserProfileAvatar extends StatefulWidget {
   final Map<String, dynamic>? userProfile;
   final File? selectedImage;
+  final Uint8List? selectedImageBytes; // For web support
   final bool isEditing;
   final VoidCallback? onImagePick;
   final UserService userService;
@@ -14,6 +16,7 @@ class UserProfileAvatar extends StatefulWidget {
     super.key,
     required this.userProfile,
     required this.selectedImage,
+    this.selectedImageBytes,
     required this.isEditing,
     required this.onImagePick,
     required this.userService,
@@ -37,7 +40,8 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.userProfile?['profilePhoto'] !=
             widget.userProfile?['profilePhoto'] ||
-        oldWidget.selectedImage != widget.selectedImage) {
+        oldWidget.selectedImage != widget.selectedImage ||
+        oldWidget.selectedImageBytes != widget.selectedImageBytes) {
       _updateImageKey();
     }
   }
@@ -123,29 +127,35 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
   }
 
   Widget _buildImage(ColorScheme colorScheme) {
-    // Priority: Selected image > Network image > Default avatar
-    if (widget.selectedImage != null) {
-      // Handle web vs mobile differently
-      if (kIsWeb) {
-        // On web, we can't use Image.file, so we'll just show a placeholder
-        // In a real app, you'd want to convert the file to bytes and use Image.memory
-        return Container(
-          color: colorScheme.primary.withOpacity(0.1),
-          child: Icon(Icons.person, size: 60, color: colorScheme.primary),
-        );
-      } else {
-        return Image.file(
-          widget.selectedImage!,
-          fit: BoxFit.cover,
-          key: Key('selected_${widget.selectedImage!.path}'),
-          errorBuilder: (context, error, stackTrace) {
-            print('Error loading selected image: $error');
-            return _buildDefaultAvatar(colorScheme);
-          },
-        );
-      }
+    // Priority: Selected image bytes (web) > Selected image file (mobile) > Network image > Default avatar
+    
+    // Handle selected image for web
+    if (kIsWeb && widget.selectedImageBytes != null) {
+      return Image.memory(
+        widget.selectedImageBytes!,
+        fit: BoxFit.cover,
+        key: Key('selected_bytes_${widget.selectedImageBytes.hashCode}'),
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading selected image bytes: $error');
+          return _buildDefaultAvatar(colorScheme);
+        },
+      );
+    }
+    
+    // Handle selected image for mobile
+    if (!kIsWeb && widget.selectedImage != null) {
+      return Image.file(
+        widget.selectedImage!,
+        fit: BoxFit.cover,
+        key: Key('selected_file_${widget.selectedImage!.path}'),
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading selected image file: $error');
+          return _buildDefaultAvatar(colorScheme);
+        },
+      );
     }
 
+    // Handle network image from profile
     final profilePhoto = widget.userProfile?['profilePhoto'];
     if (profilePhoto != null && profilePhoto.isNotEmpty) {
       final imageUrl = widget.userService.getProfilePhotoUrl(profilePhoto);
@@ -154,8 +164,12 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
           imageUrl,
           fit: BoxFit.cover,
           key: Key(_imageKey!),
+          headers: const {
+            'Accept': 'image/*',
+            'Cache-Control': 'no-cache',
+          },
           errorBuilder: (context, error, stackTrace) {
-            print('Error loading network image: $error');
+            print('Error loading network image from $imageUrl: $error');
             return _buildDefaultAvatar(colorScheme);
           },
           loadingBuilder: (context, child, loadingProgress) {
@@ -163,11 +177,10 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
             return Container(
               alignment: Alignment.center,
               child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
                 strokeWidth: 2,
                 color: colorScheme.primary,
               ),

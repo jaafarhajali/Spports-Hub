@@ -10,6 +10,11 @@ import '../widgets/theme_toggle_button.dart';
 import '../log page/signin_page.dart'; // Add this import
 import '../auth_service.dart'; // Add this import
 import '../services/user_service.dart'; // Add this import
+import '../services/notification_service.dart'; // Add this import
+import 'create_team_screen.dart';
+import 'create_tournament_screen.dart';
+import 'team_management_screen.dart';
+import 'notifications_screen.dart';
 
 class SportsHub extends StatefulWidget {
   const SportsHub({super.key});
@@ -25,11 +30,13 @@ class _SportsHubState extends State<SportsHub>
   late AnimationController _animationController;
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
+  final NotificationService _notificationService = NotificationService();
 
   // User data
   String _userName = '';
   String _userEmail = '';
   String _userImage = '';
+  int _unreadNotificationCount = 0;
 
   // For search bar animation
   bool _isSearchExpanded = false;
@@ -82,6 +89,7 @@ class _SportsHubState extends State<SportsHub>
 
     // Load user data
     _loadUserData();
+    _loadNotificationCount();
   }
 
   Future<void> _loadUserData() async {
@@ -104,6 +112,20 @@ class _SportsHubState extends State<SportsHub>
         _userName = '';
         _userEmail = '';
         _userImage = '';
+      });
+    }
+  }
+
+  Future<void> _loadNotificationCount() async {
+    try {
+      final count = await _notificationService.getUnreadCount();
+      setState(() {
+        _unreadNotificationCount = count;
+      });
+    } catch (e) {
+      print('Error loading notification count: $e');
+      setState(() {
+        _unreadNotificationCount = 0;
       });
     }
   }
@@ -178,15 +200,6 @@ class _SportsHubState extends State<SportsHub>
           ],
         ),
       ),
-      floatingActionButton:
-          _selectedIndex == 2
-              ? FloatingActionButton(
-                onPressed: () {},
-                backgroundColor: colorScheme.primary,
-                elevation: 4,
-                child: Icon(Icons.add, color: Colors.white),
-              )
-              : null,
       bottomNavigationBar: _buildBottomNavBar(isDarkMode, colorScheme),
     );
   }
@@ -234,15 +247,7 @@ class _SportsHubState extends State<SportsHub>
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () {},
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
-                  iconSize: 20,
-                ),
+                _buildNotificationButton(),
                 const ThemeToggleButton(),
               ],
             ),
@@ -371,6 +376,59 @@ class _SportsHubState extends State<SportsHub>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNotificationButton() {
+    return Stack(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NotificationsScreen(),
+              ),
+            );
+            
+            // Refresh notification count when returning from notifications screen
+            if (result == true || result == null) {
+              _loadNotificationCount();
+            }
+          },
+          constraints: const BoxConstraints(
+            minWidth: 40,
+            minHeight: 40,
+          ),
+          iconSize: 20,
+        ),
+        if (_unreadNotificationCount > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: Text(
+                _unreadNotificationCount > 99 ? '99+' : _unreadNotificationCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -594,13 +652,16 @@ class _SportsHubState extends State<SportsHub>
             Icons.notifications_outlined,
             'Notifications',
           ),
-          _buildDrawerSection('Host'),
-          _buildDrawerItem(context, Icons.stadium_outlined, 'Add Facility'),
+          _buildDrawerSection('Teams & Tournaments'),
+          _buildDrawerItem(context, Icons.group_outlined, 'My Team'),
+          _buildDrawerItem(context, Icons.group_add_outlined, 'Create Team'),
           _buildDrawerItem(
             context,
             Icons.emoji_events_outlined,
             'Create Tournament',
           ),
+          _buildDrawerSection('Host'),
+          _buildDrawerItem(context, Icons.stadium_outlined, 'Add Facility'),
           const Divider(),
           _buildDrawerItem(context, Icons.logout_outlined, 'Logout'),
         ],
@@ -652,6 +713,24 @@ class _SportsHubState extends State<SportsHub>
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const BookingHistoryScreen(),
+            ),
+          );
+        } else if (title == 'My Team') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const TeamManagementScreen(),
+            ),
+          );
+        } else if (title == 'Create Team') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CreateTeamScreen(),
+            ),
+          );
+        } else if (title == 'Create Tournament') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CreateTournamentScreen(),
             ),
           );
         } else if (title == 'Logout') {

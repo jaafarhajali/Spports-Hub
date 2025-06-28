@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_attempt/services/app_config.dart';
@@ -76,6 +78,7 @@ class UserService {
     String? email,
     String? phoneNumber,
     File? profilePhoto,
+    Uint8List? profilePhotoBytes,
   }) async {
     try {
       final token = await _getToken();
@@ -87,8 +90,11 @@ class UserService {
       print('Username: $username');
       print('Email: $email');
       print('Phone: $phoneNumber');
-      print('Photo: ${profilePhoto?.path}');
+      print('Photo file: ${profilePhoto?.path}');
+      print('Photo bytes: ${profilePhotoBytes?.length} bytes');
 
+      // Use direct upload approach via update-profile endpoint
+      // The backend userController handles profile photo upload directly
       final uri = Uri.parse('$baseUrl/update-profile');
       print('Request URL: $uri');
 
@@ -108,9 +114,18 @@ class UserService {
         request.fields['phoneNumber'] = phoneNumber;
       }
 
-      // Add profile photo if provided
-      if (profilePhoto != null) {
-        print('Adding profile photo: ${profilePhoto.path}');
+      // Add profile photo using the direct multipart approach (primary method)
+      // The backend userController expects 'profilePhoto' field for the image
+      if (kIsWeb && profilePhotoBytes != null) {
+        print('Adding profile photo from bytes: ${profilePhotoBytes.length} bytes');
+        final multipartFile = http.MultipartFile.fromBytes(
+          'profilePhoto',
+          profilePhotoBytes,
+          filename: 'profile_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        request.files.add(multipartFile);
+      } else if (!kIsWeb && profilePhoto != null) {
+        print('Adding profile photo from file: ${profilePhoto.path}');
         final multipartFile = await http.MultipartFile.fromPath(
           'profilePhoto',
           profilePhoto.path,
@@ -118,7 +133,7 @@ class UserService {
         request.files.add(multipartFile);
       }
 
-      print('Sending request...');
+      print('Sending profile update request...');
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
@@ -149,6 +164,73 @@ class UserService {
     }
   }
 
+  // Upload profile photo using dedicated upload endpoint
+  Future<Map<String, dynamic>> uploadProfilePhoto({
+    File? profilePhoto,
+    Uint8List? profilePhotoBytes,
+  }) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      if (profilePhoto == null && profilePhotoBytes == null) {
+        return {'success': false, 'message': 'No image provided'};
+      }
+
+      print('Uploading profile photo...');
+      final uri = Uri.parse('${AppConfig.apiUrl}/upload/profilePhoto');
+      print('Upload URL: $uri');
+
+      final request = http.MultipartRequest('POST', uri);
+
+      // Note: Upload endpoint doesn't require authentication based on backend routes
+
+      // Add profile photo
+      if (kIsWeb && profilePhotoBytes != null) {
+        print('Adding profile photo from bytes: ${profilePhotoBytes.length} bytes');
+        final multipartFile = http.MultipartFile.fromBytes(
+          'image', // Backend expects 'image' field name
+          profilePhotoBytes,
+          filename: 'profile_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        request.files.add(multipartFile);
+      } else if (!kIsWeb && profilePhoto != null) {
+        print('Adding profile photo from file: ${profilePhoto.path}');
+        final multipartFile = await http.MultipartFile.fromPath(
+          'image', // Backend expects 'image' field name
+          profilePhoto.path,
+        );
+        request.files.add(multipartFile);
+      } else {
+        return {'success': false, 'message': 'Invalid image data'};
+      }
+
+      print('Sending upload request...');
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('Upload response status: ${response.statusCode}');
+      print('Upload response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'path': data['path'],
+          'message': 'Image uploaded successfully',
+        };
+      } else {
+        final data = jsonDecode(response.body);
+        return {'success': false, 'message': data['error'] ?? 'Upload failed'};
+      }
+    } catch (e) {
+      print('Error uploading profile photo: $e');
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
+    }
+  }
+
   // Get profile photo URL
   String? getProfilePhotoUrl(String? profilePhoto) {
     if (profilePhoto == null || profilePhoto.isEmpty) {
@@ -161,10 +243,21 @@ class UserService {
     }
 
     // Static files are served without the /api prefix
-    // Remove /api from the base URL for static file access
+    // Backend serves static files from /public directory
     final baseUrl = AppConfig.apiUrl.replaceAll('/api', '');
     final fullUrl = '$baseUrl$profilePhoto';
     print('Generated profile photo URL: $fullUrl');
+    return fullUrl;
+  }
+
+  // Test method to validate profile photo URL generation
+  // Using example from backend uploads directory
+  String getTestProfilePhotoUrl() {
+    // Using one of the existing images from the backend
+    final testImage = '/images/user/user-1750864413599.jpg';
+    final baseUrl = AppConfig.apiUrl.replaceAll('/api', '');
+    final fullUrl = '$baseUrl$testImage';
+    print('Test profile photo URL: $fullUrl');
     return fullUrl;
   }
 }
