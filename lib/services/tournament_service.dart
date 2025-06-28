@@ -14,7 +14,16 @@ class TournamentService {
 
   /// Get all tournaments - Available to any authenticated user
   /// GET /api/tournaments/
-  Future<List<Tournament>> getAllTournaments() async {
+  Future<List<Tournament>> getAllTournaments({
+    String? status,
+    String? sport,
+    double? minPrize,
+    double? maxPrize,
+    String? search,
+    int? maxTeams,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     try {
       final token = await _authService.getToken();
 
@@ -22,11 +31,24 @@ class TournamentService {
         throw Exception('Authentication required');
       }
 
-      print('Fetching tournaments from: $baseUrl/tournaments');
+      // Build query parameters
+      final queryParams = <String, String>{};
+      if (status != null && status != 'All') queryParams['status'] = status;
+      if (sport != null && sport != 'All Sports') queryParams['sport'] = sport;
+      if (minPrize != null) queryParams['minPrize'] = minPrize.toString();
+      if (maxPrize != null) queryParams['maxPrize'] = maxPrize.toString();
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (maxTeams != null) queryParams['maxTeams'] = maxTeams.toString();
+      if (startDate != null) queryParams['startDate'] = startDate.toIso8601String();
+      if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
+
+      final uri = Uri.parse('$baseUrl/tournaments').replace(queryParameters: queryParams);
+      
+      print('Fetching tournaments from: $uri');
 
       final response = await http
           .get(
-            Uri.parse('$baseUrl/tournaments'),
+            uri,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',

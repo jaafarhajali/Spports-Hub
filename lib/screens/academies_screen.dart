@@ -4,7 +4,9 @@ import '../services/academy_service.dart';
 
 /// Screen that displays available sports academies
 class AcademiesScreen extends StatefulWidget {
-  const AcademiesScreen({super.key});
+  final String? searchQuery;
+  
+  const AcademiesScreen({super.key, this.searchQuery});
 
   @override
   State<AcademiesScreen> createState() => _AcademiesScreenState();
@@ -15,24 +17,20 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
   String? _errorMessage;
   List<Academy> _allAcademies = [];
   List<Academy> _filteredAcademies = [];
-  String _selectedCategory = 'All';
   final AcademyService _academyService = AcademyService();
-
-  // List of available sports for filtering
-  final List<String> _categories = [
-    'All',
-    'Football',
-    'Basketball',
-    'Tennis',
-    'Swimming',
-    'Soccer',
-    'Volleyball',
-  ];
 
   @override
   void initState() {
     super.initState();
     _loadAcademies();
+  }
+  
+  @override
+  void didUpdateWidget(AcademiesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchQuery != oldWidget.searchQuery) {
+      _applySearchFilter();
+    }
   }
 
   // Load academies from the backend
@@ -47,7 +45,7 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
 
       setState(() {
         _allAcademies = academies;
-        _applyFilters(); // Apply initial filters
+        _applySearchFilter(); // Apply search filter
         _isLoading = false;
       });
     } catch (e) {
@@ -59,7 +57,7 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
 
         setState(() {
           _allAcademies = mockAcademies;
-          _applyFilters();
+          _applySearchFilter();
           _isLoading = false;
           _errorMessage = 'Using demo data (could not connect to server)';
         });
@@ -72,18 +70,18 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
     }
   }
 
-  // Apply filters to the academy list
-  void _applyFilters() {
-    if (_selectedCategory == 'All') {
-      _filteredAcademies = List.from(_allAcademies);
+  // Apply search filter to the academy list
+  void _applySearchFilter() {
+    if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+      final query = widget.searchQuery!.toLowerCase();
+      _filteredAcademies = _allAcademies.where((academy) {
+        return academy.name.toLowerCase().contains(query) ||
+               academy.description.toLowerCase().contains(query) ||
+               academy.location.toLowerCase().contains(query) ||
+               academy.sports.any((sport) => sport.toLowerCase().contains(query));
+      }).toList();
     } else {
-      _filteredAcademies =
-          _allAcademies.where((academy) {
-            return academy.sports.any(
-              (sport) =>
-                  sport.toLowerCase().contains(_selectedCategory.toLowerCase()),
-            );
-          }).toList();
+      _filteredAcademies = List.from(_allAcademies);
     }
   }
 
@@ -97,8 +95,6 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildCategoryFilters(),
-            const SizedBox(height: 20),
             if (_errorMessage != null) _buildErrorBanner(),
             _buildAcademiesList(),
           ],
@@ -107,57 +103,6 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
     );
   }
 
-  /// Builds the horizontal list of category filter chips
-  Widget _buildCategoryFilters() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Sports Categories',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              final isSelected = category == _selectedCategory;
-
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: FilterChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedCategory = category;
-                      _applyFilters();
-                    });
-                  },
-                  backgroundColor: Colors.grey.withOpacity(0.1),
-                  selectedColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withOpacity(0.2),
-                  checkmarkColor: Theme.of(context).colorScheme.primary,
-                  labelStyle: TextStyle(
-                    color:
-                        isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).textTheme.bodyLarge?.color,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
   /// Builds error banner
   Widget _buildErrorBanner() {

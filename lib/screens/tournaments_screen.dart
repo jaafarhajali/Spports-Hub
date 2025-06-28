@@ -5,34 +5,49 @@ import '../services/team_service.dart';
 import '../models/team.dart';
 
 class TournamentsScreen extends StatefulWidget {
-  const TournamentsScreen({super.key});
+  final String? searchQuery;
+  
+  const TournamentsScreen({super.key, this.searchQuery});
 
   @override
   State<TournamentsScreen> createState() => _TournamentsScreenState();
 }
 
 class _TournamentsScreenState extends State<TournamentsScreen> {
-  String _selectedFilter = 'All';
-  final List<String> _filters = [
-    'All',
-    'Upcoming',
-    'Ongoing',
-    'Past',
-    'My Tournaments',
-  ];
-  
   List<Tournament> _tournaments = [];
+  List<Tournament> _filteredTournaments = [];
   bool _isLoading = true;
   String? _error;
   Team? _userTeam;
-  
   final TournamentService _tournamentService = TournamentService();
   final TeamService _teamService = TeamService();
+  
+  // Color palette for tournament cards
+  final List<Color> _tournamentColors = [
+    Colors.blue,
+    Colors.purple,
+    Colors.teal,
+    Colors.orange,
+    Colors.pink,
+    Colors.indigo,
+    Colors.cyan,
+    Colors.amber,
+    Colors.deepOrange,
+    Colors.green,
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+  
+  @override
+  void didUpdateWidget(TournamentsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchQuery != oldWidget.searchQuery) {
+      _applySearchFilter();
+    }
   }
 
   Future<void> _loadData() async {
@@ -43,6 +58,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       });
 
       final tournaments = await _tournamentService.getAllTournaments();
+      
       Team? userTeam;
       
       try {
@@ -57,7 +73,10 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
         _userTeam = userTeam;
         _isLoading = false;
       });
+      
+      _applySearchFilter();
     } catch (e) {
+      print('Error loading tournaments: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -112,8 +131,26 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
     }
   }
 
-  List<Tournament> get _filteredTournaments {
-    return _tournamentService.filterTournaments(_tournaments, _selectedFilter);
+  void _applySearchFilter() {
+    setState(() {
+      // Apply search filter if there's a search query
+      if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+        final query = widget.searchQuery!.toLowerCase();
+        _filteredTournaments = _tournaments.where((tournament) {
+          return tournament.name.toLowerCase().contains(query) ||
+                 tournament.description.toLowerCase().contains(query) ||
+                 (tournament.stadiumName?.toLowerCase().contains(query) ?? false);
+        }).toList();
+      } else {
+        _filteredTournaments = _tournaments;
+      }
+    });
+  }
+  
+  Color _getTournamentColor(String tournamentId) {
+    // Use tournament ID hash to get consistent color for each tournament
+    final hash = tournamentId.hashCode;
+    return _tournamentColors[hash.abs() % _tournamentColors.length];
   }
 
   @override
@@ -162,22 +199,6 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Featured Tournament Banner (first upcoming tournament)
-          if (filteredTournaments.isNotEmpty && 
-              filteredTournaments.any((t) => t.isRegistrationOpen))
-            _buildFeaturedTournament(
-              filteredTournaments.firstWhere((t) => t.isRegistrationOpen, 
-                  orElse: () => filteredTournaments.first),
-              context,
-            ),
-
-          const SizedBox(height: 20),
-
-          // Filter Chips
-          _buildFilterChipsRow(),
-
-          const SizedBox(height: 20),
-
           // Tournament Cards
           if (filteredTournaments.isEmpty)
             Center(
@@ -202,351 +223,29 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
               ),
             )
           else
-            ...filteredTournaments.map(
-              (tournament) => Column(
-                children: [
-                  _buildTournamentCard(tournament, context),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds a featured tournament banner
-  Widget _buildFeaturedTournament(
-    Tournament tournament,
-    BuildContext context,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      height: 200,
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colorScheme.primary,
-            colorScheme.primary.withOpacity(0.8),
-            colorScheme.primaryContainer,
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.primary.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-            spreadRadius: -4,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Stack(
-          children: [
-            // Background pattern
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _FeaturedTournamentPainter(),
-              ),
-            ),
-
-            // Featured badge
-            Positioned(
-              top: 20,
-              left: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: const BorderRadius.horizontal(
-                    right: Radius.circular(24),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+            ...filteredTournaments.asMap().entries.map(
+              (entry) {
+                final tournament = entry.value;
+                final color = _getTournamentColor(tournament.id);
+                return Column(
                   children: [
-                    Icon(
-                      Icons.star,
-                      color: Colors.amber[600],
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'FEATURED',
-                      style: TextStyle(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+                    _buildTournamentCard(tournament, context, color),
+                    const SizedBox(height: 16),
                   ],
-                ),
-              ),
-            ),
-
-            // Prize badge
-            Positioned(
-              top: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.card_giftcard,
-                      color: Colors.white,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '\$${tournament.rewardPrize.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Main content
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Spacer(),
-                  
-                  // Tournament title
-                  Text(
-                    tournament.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                      color: Colors.white,
-                      height: 1.2,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Tournament details
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              color: Colors.white.withOpacity(0.9),
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                tournament.formattedDateRange,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.people,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${tournament.teams.length}/${tournament.maxTeams}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Register button
-                  SizedBox(
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: tournament.isRegistrationOpen
-                          ? () => _joinTournament(tournament)
-                          : null,
-                      icon: Icon(
-                        tournament.isRegistrationOpen
-                            ? Icons.app_registration
-                            : Icons.sports,
-                        size: 20,
-                      ),
-                      label: Text(
-                        tournament.isRegistrationOpen
-                            ? 'Join Tournament'
-                            : 'Registration Closed',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: colorScheme.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        elevation: 4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Builds the filter chips row
-  Widget _buildFilterChipsRow() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.grey.shade800.withAlpha(128)
-                : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
-          width: 1,
-        ),
-      ),
-      // Reduced padding to prevent overflow
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      // Use SingleChildScrollView with Row instead of ListView for better performance
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children:
-              _filters.map((label) {
-                final selected = label == _selectedFilter;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = label;
-                    });
-                  },
-                  child: _buildFilterChip(label, selected),
                 );
-              }).toList(),
-        ),
+              },
+            ),
+        ],
       ),
     );
   }
 
-  /// Builds an individual filter chip for tournament categories
-  Widget _buildFilterChip(String label, bool selected) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color:
-                selected
-                    ? Colors.transparent
-                    : isDarkMode
-                    ? Colors.grey.shade600
-                    : Colors.grey.shade400,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color:
-                selected
-                    ? Colors.white
-                    : isDarkMode
-                    ? Colors.white
-                    : Colors.black87,
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
 
   /// Builds an individual card for a tournament
   Widget _buildTournamentCard(
     Tournament tournament,
     BuildContext context,
+    Color primaryColor,
   ) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
@@ -565,7 +264,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.primary.withOpacity(0.1),
+            color: primaryColor.withOpacity(0.1),
             blurRadius: 20,
             offset: const Offset(0, 8),
             spreadRadius: -4,
@@ -591,9 +290,9 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    colorScheme.primary,
-                    colorScheme.primary.withOpacity(0.8),
-                    colorScheme.primaryContainer,
+                    primaryColor,
+                    primaryColor.withOpacity(0.8),
+                    primaryColor.withOpacity(0.6),
                   ],
                 ),
               ),
@@ -602,7 +301,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   // Background pattern
                   Positioned.fill(
                     child: CustomPaint(
-                      painter: _TournamentCardPainter(colorScheme.primary),
+                      painter: _TournamentCardPainter(primaryColor),
                     ),
                   ),
                   
@@ -783,13 +482,13 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                colorScheme.primary.withOpacity(0.1),
-                                colorScheme.primary.withOpacity(0.05),
+                                primaryColor.withOpacity(0.1),
+                                primaryColor.withOpacity(0.05),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: colorScheme.primary.withOpacity(0.2),
+                              color: primaryColor.withOpacity(0.2),
                               width: 1,
                             ),
                           ),
@@ -800,7 +499,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                                 children: [
                                   Icon(
                                     Icons.card_giftcard,
-                                    color: colorScheme.primary,
+                                    color: primaryColor,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 6),
@@ -809,7 +508,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: colorScheme.primary,
+                                      color: primaryColor,
                                     ),
                                   ),
                                 ],
@@ -895,17 +594,17 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                           icon: Icon(
                             Icons.info_outline,
                             size: 18,
-                            color: colorScheme.primary,
+                            color: primaryColor,
                           ),
                           label: Text(
                             'Details',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: colorScheme.primary,
+                              color: primaryColor,
                             ),
                           ),
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: colorScheme.primary),
+                            side: BorderSide(color: primaryColor),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -941,7 +640,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: tournament.isRegistrationOpen
-                                ? colorScheme.primary
+                                ? primaryColor
                                 : Colors.grey,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
@@ -1030,61 +729,3 @@ class _TournamentCardPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _FeaturedTournamentPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.fill;
-
-    // Draw larger decorative circles
-    final center1 = Offset(size.width * 0.85, size.height * 0.15);
-    final center2 = Offset(size.width * 0.15, size.height * 0.85);
-    final center3 = Offset(size.width * 1.2, size.height * 0.5);
-
-    canvas.drawCircle(center1, 60, paint);
-    canvas.drawCircle(center2, 40, paint);
-    canvas.drawCircle(center3, 80, paint);
-
-    // Draw flowing lines
-    final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-
-    final path1 = Path();
-    path1.moveTo(0, size.height * 0.2);
-    path1.quadraticBezierTo(
-      size.width * 0.3,
-      size.height * 0.1,
-      size.width * 0.6,
-      size.height * 0.3,
-    );
-    path1.quadraticBezierTo(
-      size.width * 0.8,
-      size.height * 0.4,
-      size.width,
-      size.height * 0.2,
-    );
-    canvas.drawPath(path1, linePaint);
-
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.6);
-    path2.quadraticBezierTo(
-      size.width * 0.4,
-      size.height * 0.4,
-      size.width * 0.7,
-      size.height * 0.7,
-    );
-    path2.quadraticBezierTo(
-      size.width * 0.9,
-      size.height * 0.8,
-      size.width,
-      size.height * 0.6,
-    );
-    canvas.drawPath(path2, linePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

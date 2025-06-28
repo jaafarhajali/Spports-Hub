@@ -44,11 +44,11 @@ class _SportsHubState extends State<SportsHub>
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
 
-  final List<Widget> _screens = [
+  List<Widget> get _screens => [
     const HomeScreen(),
-    const AcademiesScreen(),
-    const TournamentsScreen(),
-    const StadiumsScreen(),
+    AcademiesScreen(searchQuery: _searchController.text),
+    TournamentsScreen(searchQuery: _searchController.text),
+    StadiumsScreen(searchQuery: _searchController.text),
   ];
 
   final List<String> _screenTitles = [
@@ -86,6 +86,11 @@ class _SportsHubState extends State<SportsHub>
         });
         _animationController.forward();
       }
+    });
+
+    _searchController.addListener(() {
+      // Refresh the current screen when search changes
+      setState(() {});
     });
 
     // Load user data

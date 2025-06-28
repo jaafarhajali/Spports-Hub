@@ -6,7 +6,9 @@ import '../services/app_config.dart';
 
 // Change class name from BookingScreen to StadiumsScreen
 class StadiumsScreen extends StatefulWidget {
-  const StadiumsScreen({super.key});
+  final String? searchQuery;
+  
+  const StadiumsScreen({super.key, this.searchQuery});
 
   @override
   State<StadiumsScreen> createState() => _StadiumsScreenState();
@@ -15,7 +17,6 @@ class StadiumsScreen extends StatefulWidget {
 // Update state class name
 class _StadiumsScreenState extends State<StadiumsScreen> {
   int _selectedDateIndex = 0;
-  String _selectedSport = 'All';
   int _selectedTimeSlot = 0;
   bool _isLoading = true;
   bool _isBooking = false;
@@ -24,16 +25,6 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   List<Stadium> _filteredStadiums = [];
   final StadiumService _stadiumService = StadiumService();
   final BookingService _bookingService = BookingService();
-
-  // List of available sports for filtering
-  final List<String> _sportTypes = [
-    'All',
-    'Football',
-    'Basketball',
-    'Tennis',
-    'Swimming',
-    'Volleyball',
-  ];
 
   // Generate next 14 days for booking
   final List<DateTime> _availableDates = List.generate(
@@ -45,6 +36,14 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   void initState() {
     super.initState();
     _loadStadiums();
+  }
+  
+  @override
+  void didUpdateWidget(StadiumsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchQuery != oldWidget.searchQuery) {
+      _applySearchFilter();
+    }
   }
 
   // Load stadiums from the backend
@@ -59,7 +58,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
 
       setState(() {
         _allStadiums = stadiums;
-        _applyFilters(); // Apply initial filters
+        _applySearchFilter(); // Apply search filter
         _isLoading = false;
       });
     } catch (e) {
@@ -71,7 +70,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
 
         setState(() {
           _allStadiums = mockStadiums;
-          _applyFilters();
+          _applySearchFilter();
           _isLoading = false;
           _errorMessage = 'Using demo data (could not connect to server)';
         });
@@ -84,17 +83,16 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     }
   }
 
-  // Apply filters to the stadium list
-  void _applyFilters() {
-    if (_selectedSport == 'All') {
-      _filteredStadiums = List.from(_allStadiums);
+  // Apply search filter to the stadium list
+  void _applySearchFilter() {
+    if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+      final query = widget.searchQuery!.toLowerCase();
+      _filteredStadiums = _allStadiums.where((stadium) {
+        return stadium.name.toLowerCase().contains(query) ||
+               stadium.location.toLowerCase().contains(query);
+      }).toList();
     } else {
-      _filteredStadiums =
-          _allStadiums.where((stadium) {
-            final name = stadium.name.toLowerCase();
-            final sportType = _selectedSport.toLowerCase();
-            return name.contains(sportType);
-          }).toList();
+      _filteredStadiums = List.from(_allStadiums);
     }
   }
 
@@ -107,8 +105,6 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             _buildDateSelector(),
-            const SizedBox(height: 20),
-            _buildSportFilters(),
             const SizedBox(height: 20),
             if (_errorMessage != null)
               Padding(
@@ -246,49 +242,6 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   }
 
   // Build sport filter chips
-  Widget _buildSportFilters() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Sport Type',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children:
-              _sportTypes.map((sport) {
-                final isSelected = sport == _selectedSport;
-                return FilterChip(
-                  label: Text(sport),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedSport = sport;
-                      _applyFilters();
-                    });
-                  },
-                  backgroundColor: Colors.grey.withOpacity(0.1),
-                  selectedColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withOpacity(0.2),
-                  checkmarkColor: Theme.of(context).colorScheme.primary,
-                  labelStyle: TextStyle(
-                    color:
-                        isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).textTheme.bodyLarge?.color,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                );
-              }).toList(),
-        ),
-      ],
-    );
-  }
 
   // Build list of available facilities
   Widget _buildAvailableFacilities() {
