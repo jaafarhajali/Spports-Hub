@@ -15,6 +15,7 @@ import 'create_team_screen.dart';
 import 'create_tournament_screen.dart';
 import 'team_management_screen.dart';
 import 'notifications_screen.dart';
+import 'create_stadium_screen.dart';
 
 class SportsHub extends StatefulWidget {
   const SportsHub({super.key});
@@ -661,7 +662,7 @@ class _SportsHubState extends State<SportsHub>
             'Create Tournament',
           ),
           _buildDrawerSection('Host'),
-          _buildDrawerItem(context, Icons.stadium_outlined, 'Add Facility'),
+          _buildDrawerItem(context, Icons.stadium_outlined, 'Create Stadium'),
           const Divider(),
           _buildDrawerItem(context, Icons.logout_outlined, 'Logout'),
         ],
@@ -731,6 +732,12 @@ class _SportsHubState extends State<SportsHub>
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const CreateTournamentScreen(),
+            ),
+          );
+        } else if (title == 'Create Stadium') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CreateStadiumScreen(),
             ),
           );
         } else if (title == 'Logout') {
