@@ -36,7 +36,10 @@ class Academy {
       photos: List<String>.from(json['photos'] ?? []),
       rating: json['rating']?.toDouble() ?? 4.0,
       ageGroup: json['ageGroup'] ?? 'All Ages',
-      contact: json['contact'] ?? {'phone': '', 'email': ''},
+      contact: {
+        'phone': json['phoneNumber'] ?? json['contact']?['phone'] ?? '',
+        'email': json['email'] ?? json['contact']?['email'] ?? '',
+      },
       owner:
           (json['ownerId'] is Map)
               ? json['ownerId']

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/stadium.dart';
+import '../models/tournament.dart';
 import '../services/stadium_service.dart';
 import '../services/tournament_service.dart';
 import '../auth_service.dart';
 
 class CreateTournamentScreen extends StatefulWidget {
-  const CreateTournamentScreen({super.key});
+  final Tournament? tournament;
+  
+  const CreateTournamentScreen({super.key, this.tournament});
 
   @override
   State<CreateTournamentScreen> createState() => _CreateTournamentScreenState();
@@ -31,6 +34,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
   bool _isLoading = false;
   bool _isLoadingStadiums = true;
   bool _canCreateTournaments = false;
+  bool get _isEditing => widget.tournament != null;
 
   @override
   void initState() {
@@ -50,6 +54,23 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
 
   Future<void> _initializeScreen() async {
     await _checkPermissionsAndLoadStadiums();
+    
+    // Pre-fill form if editing
+    if (_isEditing) {
+      _prefillFormForEditing();
+    }
+  }
+  
+  void _prefillFormForEditing() {
+    final tournament = widget.tournament!;
+    _nameController.text = tournament.name;
+    _descriptionController.text = tournament.description;
+    _entryPriceController.text = tournament.entryPricePerTeam.toString();
+    _rewardPrizeController.text = tournament.rewardPrize.toString();
+    _maxTeamsController.text = tournament.maxTeams.toString();
+    _startDate = tournament.startDate;
+    _endDate = tournament.endDate;
+    _selectedStadiumId = tournament.stadiumId;
   }
 
   Future<void> _checkPermissionsAndLoadStadiums() async {
@@ -144,7 +165,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     }
   }
 
-  Future<void> _createTournament() async {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -164,24 +185,45 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     });
 
     try {
-      final tournament = await _tournamentService.createTournament(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        entryPricePerTeam: double.parse(_entryPriceController.text),
-        rewardPrize: double.parse(_rewardPrizeController.text),
-        maxTeams: int.parse(_maxTeamsController.text),
-        startDate: _startDate!,
-        endDate: _endDate!,
-        stadiumId: _selectedStadiumId!,
-      );
+      if (_isEditing) {
+        // Update existing tournament
+        final tournament = await _tournamentService.updateTournament(
+          tournamentId: widget.tournament!.id,
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          entryPricePerTeam: double.parse(_entryPriceController.text),
+          rewardPrize: double.parse(_rewardPrizeController.text),
+          maxTeams: int.parse(_maxTeamsController.text),
+          startDate: _startDate!,
+          endDate: _endDate!,
+          stadiumId: _selectedStadiumId!,
+        );
 
-      if (mounted) {
-        _showSuccessSnackBar('Tournament "${tournament.name}" created successfully!');
-        Navigator.pop(context, true);
+        if (mounted) {
+          _showSuccessSnackBar('Tournament "${tournament.name}" updated successfully!');
+          Navigator.pop(context, true);
+        }
+      } else {
+        // Create new tournament
+        final tournament = await _tournamentService.createTournament(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          entryPricePerTeam: double.parse(_entryPriceController.text),
+          rewardPrize: double.parse(_rewardPrizeController.text),
+          maxTeams: int.parse(_maxTeamsController.text),
+          startDate: _startDate!,
+          endDate: _endDate!,
+          stadiumId: _selectedStadiumId!,
+        );
+
+        if (mounted) {
+          _showSuccessSnackBar('Tournament "${tournament.name}" created successfully!');
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Failed to create tournament: ${e.toString()}');
+        _showErrorSnackBar('Failed to ${_isEditing ? 'update' : 'create'} tournament: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -220,9 +262,9 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     return Scaffold(
       backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Create Tournament',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          _isEditing ? 'Edit Tournament' : 'Create Tournament',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -327,8 +369,8 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Create New Tournament',
-                    style: TextStyle(
+                    _isEditing ? 'Edit Tournament' : 'Create New Tournament',
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -336,7 +378,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Set up your tournament details',
+                    _isEditing ? 'Update your tournament details' : 'Set up your tournament details',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.white.withOpacity(0.9),
@@ -472,7 +514,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
             SizedBox(
               height: 56,
               child: ElevatedButton(
-                onPressed: (_isLoading || _availableStadiums.isEmpty) ? null : _createTournament,
+                onPressed: (_isLoading || _availableStadiums.isEmpty) ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme.primary,
                   foregroundColor: Colors.white,
@@ -493,11 +535,14 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_circle_outline, size: 24),
+                          Icon(
+                            _isEditing ? Icons.edit : Icons.add_circle_outline, 
+                            size: 24
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            'Create Tournament',
-                            style: TextStyle(
+                            _isEditing ? 'Update Tournament' : 'Create Tournament',
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),

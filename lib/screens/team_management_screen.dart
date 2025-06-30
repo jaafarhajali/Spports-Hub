@@ -246,6 +246,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
       body: _buildBody(colorScheme, isDarkMode),
       floatingActionButton: _team != null && _isLeader
           ? FloatingActionButton.extended(
+              heroTag: "team_invite_fab",
               onPressed: () async {
                 final result = await Navigator.push(
                   context,

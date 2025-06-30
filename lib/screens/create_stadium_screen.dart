@@ -26,7 +26,7 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
   final AuthService _authService = AuthService();
   final ImagePicker _imagePicker = ImagePicker();
   
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   bool _isLoading = false;
   bool _canCreateStadium = false;
 

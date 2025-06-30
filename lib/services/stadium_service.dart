@@ -199,11 +199,128 @@ class StadiumService {
     }
   }
 
-  // Check if user can create stadiums
+  // Update stadium
+  Future<Stadium> updateStadium({
+    required String stadiumId,
+    required String name,
+    required String location,
+    required double pricePerMatch,
+    required int maxPlayers,
+    required Map<String, String> workingHours,
+    required Map<String, dynamic> penaltyPolicy,
+    List<File>? photos,
+  }) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      var request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('$baseUrl/dashboard/stadiums/$stadiumId'),
+      );
+
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+      });
+
+      request.fields['name'] = name;
+      request.fields['location'] = location;
+      request.fields['pricePerMatch'] = pricePerMatch.toString();
+      request.fields['maxPlayers'] = maxPlayers.toString();
+      request.fields['workingHours'] = jsonEncode(workingHours);
+      request.fields['penaltyPolicy'] = jsonEncode(penaltyPolicy);
+
+      if (photos != null && photos.isNotEmpty) {
+        for (int i = 0; i < photos.length && i < 5; i++) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'photos',
+              photos[i].path,
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return Stadium.fromJson(jsonData['data']);
+        } else {
+          throw Exception('Failed to update stadium');
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to update stadium');
+      }
+    } catch (e) {
+      print('Update stadium error: $e');
+      rethrow;
+    }
+  }
+
+  // Delete stadium
+  Future<bool> deleteStadium(String stadiumId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/dashboard/stadiums/$stadiumId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        return jsonData['success'] == true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to delete stadium');
+      }
+    } catch (e) {
+      print('Delete stadium error: $e');
+      rethrow;
+    }
+  }
+
+  // Check if user can create stadiums (only stadiumOwner and admin)
   Future<bool> canCreateStadiums() async {
     try {
       final userRole = await _authService.getUserRole();
       return userRole == 'stadiumOwner' || userRole == 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Check if user can edit/delete a specific stadium (only owner or admin)
+  Future<bool> canEditStadium(Stadium stadium) async {
+    try {
+      final userRole = await _authService.getUserRole();
+      final userId = await _authService.getUserId();
+      
+      // Admin can edit any stadium
+      if (userRole == 'admin') {
+        return true;
+      }
+      
+      // Stadium owner can only edit their own stadiums
+      if (userRole == 'stadiumOwner' && stadium.ownerId == userId) {
+        return true;
+      }
+      
+      return false;
     } catch (e) {
       return false;
     }

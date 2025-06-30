@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  final String baseUrl = '${AppConfig.apiUrl}/auth';
+  final String baseUrl = AppConfig.apiUrl;
 
   // Store token
   Future<void> storeToken(String token) async {
@@ -76,16 +76,21 @@ class AuthService {
   Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/register'),
+        Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(userData),
       );
 
       final result = _handleResponse(response);
 
-      // Store token if available
-      if (result.containsKey('token')) {
+      // Store token and user data if registration successful
+      if (result['success'] == true && result.containsKey('token')) {
         await storeToken(result['token']);
+        
+        // Store user data if available
+        if (result.containsKey('user')) {
+          await storeUserData(result['user']);
+        }
       }
 
       return result;
@@ -98,16 +103,14 @@ class AuthService {
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
       // Log the request for debugging
-      print('Sending login request to: $baseUrl/login');
-      print('Request data: {"username": "$username", "password": "****"}');
+      print('Sending login request to: $baseUrl/auth/login');
+      print('Request data: {"email": "$username", "password": "****"}');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          // Try both username and email fields since your schema supports both
-          'username': username,
-          'email': username, // Also send as email in case backend expects this
+          'email': username, // Backend expects email field
           'password': password,
         }),
       );
@@ -217,13 +220,28 @@ class AuthService {
       print('Response body: $data'); // Add logging
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return data;
+        // Backend returns {success: true, token: ..., user: ...}
+        if (data['success'] == true) {
+          return {
+            'success': true,
+            'token': data['token'],
+            'user': data['user'],
+            'message': 'Success'
+          };
+        } else {
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Operation failed'
+          };
+        }
       } else {
+        // Handle error responses
         final message = data['message'] ?? 'Unknown error occurred';
         return {'success': false, 'message': message};
       }
     } catch (e) {
       print('Response parsing error: ${e.toString()}'); // Add logging
+      print('Raw response body: ${response.body}'); // Add raw body logging
       return {'success': false, 'message': 'Failed to parse response'};
     }
   }

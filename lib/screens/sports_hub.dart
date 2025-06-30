@@ -12,13 +12,19 @@ import '../auth_service.dart'; // Add this import
 import '../services/user_service.dart'; // Add this import
 import '../services/notification_service.dart'; // Add this import
 import 'create_team_screen.dart';
-import 'create_tournament_screen.dart';
 import 'team_management_screen.dart';
 import 'notifications_screen.dart';
-import 'create_stadium_screen.dart';
+import 'owner_dashboard_screen.dart';
 
 class SportsHub extends StatefulWidget {
-  const SportsHub({super.key});
+  final int? initialIndex;
+  final bool? shouldShowBookingHistory;
+  
+  const SportsHub({
+    super.key, 
+    this.initialIndex,
+    this.shouldShowBookingHistory,
+  });
 
   @override
   State<SportsHub> createState() => _SportsHubState();
@@ -37,6 +43,7 @@ class _SportsHubState extends State<SportsHub>
   String _userName = '';
   String _userEmail = '';
   String _userImage = '';
+  String _userRole = '';
   int _unreadNotificationCount = 0;
 
   // For search bar animation
@@ -74,6 +81,12 @@ class _SportsHubState extends State<SportsHub>
   @override
   void initState() {
     super.initState();
+    
+    // Set initial index if provided
+    if (widget.initialIndex != null) {
+      _selectedIndex = widget.initialIndex!;
+    }
+    
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
@@ -93,6 +106,17 @@ class _SportsHubState extends State<SportsHub>
       setState(() {});
     });
 
+    // Handle booking history navigation
+    if (widget.shouldShowBookingHistory == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const BookingHistoryScreen(),
+          ),
+        );
+      });
+    }
+
     // Load user data
     _loadUserData();
     _loadNotificationCount();
@@ -101,6 +125,7 @@ class _SportsHubState extends State<SportsHub>
   Future<void> _loadUserData() async {
     try {
       final userProfile = await _userService.getUserProfile();
+      final userRole = await _authService.getUserRole();
       if (userProfile != null) {
         final profileImageUrl = _userService.getProfilePhotoUrl(
           userProfile['profilePhoto'],
@@ -109,6 +134,7 @@ class _SportsHubState extends State<SportsHub>
           _userName = userProfile['username'] ?? '';
           _userEmail = userProfile['email'] ?? '';
           _userImage = profileImageUrl ?? '';
+          _userRole = userRole ?? '';
         });
       }
     } catch (e) {
@@ -118,6 +144,7 @@ class _SportsHubState extends State<SportsHub>
         _userName = '';
         _userEmail = '';
         _userImage = '';
+        _userRole = '';
       });
     }
   }
@@ -146,6 +173,19 @@ class _SportsHubState extends State<SportsHub>
       return (nameParts[0].substring(0, 1) + nameParts[1].substring(0, 1))
           .toUpperCase();
     }
+  }
+
+  // Permission helper methods
+  bool _canCreateStadiums() {
+    return _userRole == 'stadiumOwner' || _userRole == 'admin';
+  }
+
+  bool _canCreateAcademies() {
+    return _userRole == 'academyOwner' || _userRole == 'admin';
+  }
+
+  bool _canCreateTournaments() {
+    return _userRole == 'stadiumOwner' || _userRole == 'admin';
   }
 
   @override
@@ -661,13 +701,11 @@ class _SportsHubState extends State<SportsHub>
           _buildDrawerSection('Teams & Tournaments'),
           _buildDrawerItem(context, Icons.group_outlined, 'My Team'),
           _buildDrawerItem(context, Icons.group_add_outlined, 'Create Team'),
-          _buildDrawerItem(
-            context,
-            Icons.emoji_events_outlined,
-            'Create Tournament',
-          ),
-          _buildDrawerSection('Host'),
-          _buildDrawerItem(context, Icons.stadium_outlined, 'Create Stadium'),
+          // Management section for owners
+          if (_canCreateStadiums() || _canCreateAcademies())
+            _buildDrawerSection('Management'),
+          if (_canCreateStadiums() || _canCreateAcademies())
+            _buildDrawerItem(context, Icons.dashboard_outlined, 'Owner Dashboard'),
           const Divider(),
           _buildDrawerItem(context, Icons.logout_outlined, 'Logout'),
         ],
@@ -733,16 +771,10 @@ class _SportsHubState extends State<SportsHub>
               builder: (context) => const CreateTeamScreen(),
             ),
           );
-        } else if (title == 'Create Tournament') {
+        } else if (title == 'Owner Dashboard') {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => const CreateTournamentScreen(),
-            ),
-          );
-        } else if (title == 'Create Stadium') {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const CreateStadiumScreen(),
+              builder: (context) => const OwnerDashboardScreen(),
             ),
           );
         } else if (title == 'Logout') {

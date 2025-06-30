@@ -57,10 +57,17 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
         _error = null;
       });
 
-      final tournaments = await _tournamentService.getAllTournaments();
+      // Load tournaments first
+      List<Tournament> tournaments = [];
+      try {
+        tournaments = await _tournamentService.getAllTournaments();
+      } catch (e) {
+        print('Error loading tournaments: $e');
+        tournaments = [];
+      }
       
+      // Load user team
       Team? userTeam;
-      
       try {
         userTeam = await _teamService.getMyTeam();
       } catch (e) {
@@ -68,58 +75,93 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
         userTeam = null;
       }
 
-      setState(() {
-        _tournaments = tournaments ?? [];
-        _userTeam = userTeam;
-        _isLoading = false;
-      });
-      
-      _applySearchFilter();
+      if (mounted) {
+        setState(() {
+          _tournaments = tournaments;
+          _userTeam = userTeam;
+          _isLoading = false;
+        });
+        
+        _applySearchFilter();
+      }
     } catch (e) {
       print('Error loading tournaments: $e');
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _joinTournament(Tournament tournament) async {
+    // Check if user has a team
     if (_userTeam == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You need to create or join a team first'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You need to create or join a team first'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Check if tournament is still open for registration
+    if (!tournament.isRegistrationOpen) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tournament registration is closed'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
     }
 
     try {
       final teamId = _userTeam?.id;
-      if (teamId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Team information not available'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (teamId == null || teamId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Team information not available'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
       
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Joining tournament...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+      
       final result = await _tournamentService.joinTournament(tournament.id, teamId);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result['message'] ?? 'Tournament join request processed'),
-            backgroundColor: result['success'] ? Colors.green : Colors.red,
+            backgroundColor: result['success'] == true ? Colors.green : Colors.red,
           ),
         );
-        if (result['success']) {
+        
+        if (result['success'] == true) {
           _loadData(); // Reload tournaments on success
         }
       }
     } catch (e) {
+      print('Error joining tournament: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -132,6 +174,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
   }
 
   void _applySearchFilter() {
+    if (!mounted) return;
+    
     setState(() {
       // Apply search filter if there's a search query
       if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
@@ -142,7 +186,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                  (tournament.stadiumName?.toLowerCase().contains(query) ?? false);
         }).toList();
       } else {
-        _filteredTournaments = _tournaments;
+        _filteredTournaments = List.from(_tournaments);
       }
     });
   }
@@ -249,6 +293,17 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
   ) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    
+    // Validate tournament data
+    if (tournament.id.isEmpty || tournament.name.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'Invalid tournament data',
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -375,7 +430,9 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    tournament.stadiumName ?? 'TBD',
+                                    tournament.stadiumName?.isNotEmpty == true 
+                                        ? tournament.stadiumName! 
+                                        : 'Stadium TBD',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 11,
@@ -515,7 +572,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '\$${tournament.rewardPrize.toStringAsFixed(0)}',
+                                '${tournament.rewardPrize.toStringAsFixed(0)} LBP',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
@@ -569,7 +626,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '\$${tournament.entryPricePerTeam.toStringAsFixed(0)}',
+                                '${tournament.entryPricePerTeam.toStringAsFixed(0)} LBP',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,

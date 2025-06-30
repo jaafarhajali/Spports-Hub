@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:io';
+import '../services/app_config.dart';
 
 class ImageUtils {
   static const int maxFileSize = 10 * 1024 * 1024; // 10MB
@@ -63,5 +64,44 @@ class ImageUtils {
     }
     
     return null;
+  }
+  
+  /// Get stadium image URL with proper path construction
+  static String getStadiumImageUrl(String photoPath) {
+    if (photoPath.startsWith('http')) {
+      return photoPath;
+    }
+    
+    if (photoPath.startsWith('/images')) {
+      return '${AppConfig.apiUrl}$photoPath';
+    }
+    
+    return '${AppConfig.apiUrl}/images/stadiumsImages/$photoPath';
+  }
+  
+  /// Get academy image URL with proper path construction
+  static String getAcademyImageUrl(String photoPath) {
+    if (photoPath.startsWith('http')) {
+      return photoPath;
+    }
+    
+    if (photoPath.startsWith('/images')) {
+      return '${AppConfig.apiUrl}$photoPath';
+    }
+    
+    return '${AppConfig.apiUrl}/images/academiesImages/$photoPath';
+  }
+  
+  /// Get tournament image URL with proper path construction
+  static String getTournamentImageUrl(String photoPath) {
+    if (photoPath.startsWith('http')) {
+      return photoPath;
+    }
+    
+    if (photoPath.startsWith('/images')) {
+      return '${AppConfig.apiUrl}$photoPath';
+    }
+    
+    return '${AppConfig.apiUrl}/images/tournamentsImages/$photoPath';
   }
 }

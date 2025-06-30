@@ -1,5 +1,6 @@
 // lib/services/academy_service.dart
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/academy.dart';
 import '../auth_service.dart';
@@ -87,6 +88,229 @@ class AcademyService {
     } catch (e) {
       print('Get academy by ID error: $e');
       rethrow;
+    }
+  }
+
+  // Create new academy
+  Future<Academy> createAcademy({
+    required String name,
+    required String description,
+    required String location,
+    required String phoneNumber,
+    required String email,
+    List<File>? photos,
+  }) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/dashboard/academies'),
+      );
+
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+      });
+
+      request.fields['name'] = name;
+      request.fields['description'] = description;
+      request.fields['location'] = location;
+      request.fields['phoneNumber'] = phoneNumber;
+      request.fields['email'] = email;
+
+      if (photos != null && photos.isNotEmpty) {
+        for (int i = 0; i < photos.length && i < 5; i++) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'photos',
+              photos[i].path,
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 201) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return Academy.fromJson(jsonData['data']);
+        } else {
+          throw Exception('Failed to create academy');
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to create academy');
+      }
+    } catch (e) {
+      print('Create academy error: $e');
+      rethrow;
+    }
+  }
+
+  // Update academy
+  Future<Academy> updateAcademy({
+    required String academyId,
+    required String name,
+    required String description,
+    required String location,
+    required String phoneNumber,
+    required String email,
+    List<File>? photos,
+  }) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      var request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('$baseUrl/dashboard/academies/$academyId'),
+      );
+
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+      });
+
+      request.fields['name'] = name;
+      request.fields['description'] = description;
+      request.fields['location'] = location;
+      request.fields['phoneNumber'] = phoneNumber;
+      request.fields['email'] = email;
+
+      if (photos != null && photos.isNotEmpty) {
+        for (int i = 0; i < photos.length && i < 5; i++) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'photos',
+              photos[i].path,
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return Academy.fromJson(jsonData['data']);
+        } else {
+          throw Exception('Failed to update academy');
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to update academy');
+      }
+    } catch (e) {
+      print('Update academy error: $e');
+      rethrow;
+    }
+  }
+
+  // Delete academy
+  Future<bool> deleteAcademy(String academyId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/dashboard/academies/$academyId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        return jsonData['success'] == true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to delete academy');
+      }
+    } catch (e) {
+      print('Delete academy error: $e');
+      rethrow;
+    }
+  }
+
+  // Get academies by owner
+  Future<List<Academy>> getMyAcademies() async {
+    try {
+      final token = await _authService.getToken();
+      final userId = await _authService.getUserId();
+
+      if (token == null || userId == null) {
+        throw Exception('Authentication required');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/dashboard/my-academies'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return (jsonData['data'] as List)
+              .map((academy) => Academy.fromJson(academy))
+              .toList();
+        } else {
+          return [];
+        }
+      } else {
+        throw Exception('Failed to load my academies');
+      }
+    } catch (e) {
+      print('Get my academies error: $e');
+      return [];
+    }
+  }
+
+  // Check if user can create academies (only academyOwner and admin)
+  Future<bool> canCreateAcademies() async {
+    try {
+      final userRole = await _authService.getUserRole();
+      return userRole == 'academyOwner' || userRole == 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Check if user can edit/delete a specific academy (only owner or admin)
+  Future<bool> canEditAcademy(Academy academy) async {
+    try {
+      final userRole = await _authService.getUserRole();
+      final userId = await _authService.getUserId();
+      
+      // Admin can edit any academy
+      if (userRole == 'admin') {
+        return true;
+      }
+      
+      // Academy owner can only edit their own academies
+      if (userRole == 'academyOwner' && academy.owner['_id'] == userId) {
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      return false;
     }
   }
 

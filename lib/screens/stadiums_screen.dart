@@ -3,6 +3,7 @@ import '../models/stadium.dart';
 import '../services/stadium_service.dart';
 import '../services/booking_service.dart';
 import '../services/app_config.dart';
+import 'stadium_form_screen.dart';
 
 // Change class name from BookingScreen to StadiumsScreen
 class StadiumsScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   List<Stadium> _filteredStadiums = [];
   final StadiumService _stadiumService = StadiumService();
   final BookingService _bookingService = BookingService();
+  bool _canCreateStadiums = false;
 
   // Generate next 14 days for booking
   final List<DateTime> _availableDates = List.generate(
@@ -36,6 +38,14 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   void initState() {
     super.initState();
     _loadStadiums();
+    _checkCreatePermission();
+  }
+
+  Future<void> _checkCreatePermission() async {
+    final canCreate = await _stadiumService.canCreateStadiums();
+    setState(() {
+      _canCreateStadiums = canCreate;
+    });
   }
   
   @override
@@ -96,6 +106,67 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     }
   }
 
+  Future<void> _navigateToCreateStadium() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const StadiumFormScreen(),
+      ),
+    );
+    
+    if (result == true) {
+      _loadStadiums(); // Reload stadiums after creating
+    }
+  }
+
+  Future<void> _navigateToEditStadium(Stadium stadium) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StadiumFormScreen(stadium: stadium),
+      ),
+    );
+    
+    if (result == true) {
+      _loadStadiums(); // Reload stadiums after editing
+    }
+  }
+
+  Future<void> _deleteStadium(Stadium stadium) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Stadium'),
+        content: Text('Are you sure you want to delete "${stadium.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _stadiumService.deleteStadium(stadium.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Stadium deleted successfully')),
+        );
+        _loadStadiums(); // Reload stadiums after deletion
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting stadium: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,6 +204,13 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
           ],
         ),
       ),
+      floatingActionButton: _canCreateStadiums
+          ? FloatingActionButton(
+              onPressed: _navigateToCreateStadium,
+              heroTag: "stadiums_main_fab",
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
@@ -360,6 +438,58 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                       ),
                     ),
                   ),
+                ),
+
+                // Edit/Delete menu (only show if user can edit this specific stadium)
+                FutureBuilder<bool>(
+                  future: _stadiumService.canEditStadium(stadium),
+                  builder: (context, snapshot) {
+                    if (snapshot.data == true) {
+                      return Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.white),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _navigateToEditStadium(stadium);
+                              } else if (value == 'delete') {
+                                _deleteStadium(stadium);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
                 ),
               ],
             ),
@@ -877,7 +1007,12 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   }
 
   // Helper method to construct proper image URL
-  String _getImageUrl(String photoPath) {
+  String _getImageUrl(String? photoPath) {
+    // Handle null or empty photo path
+    if (photoPath == null || photoPath.isEmpty) {
+      return ''; // Return empty string for placeholder handling
+    }
+    
     // If the path already starts with http, return as is
     if (photoPath.startsWith('http')) {
       return photoPath;
@@ -885,10 +1020,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     
     // If it's a relative path starting with /images, construct full URL
     if (photoPath.startsWith('/images')) {
-      return '${AppConfig.apiUrl}$photoPath';
+      return '${AppConfig.baseUrl}$photoPath';
     }
     
     // If it's just a filename, assume it's in the stadium images directory
-    return '${AppConfig.apiUrl}/images/stadiumsImages/$photoPath';
+    return '${AppConfig.baseUrl}/images/stadiumsImages/$photoPath';
   }
 }

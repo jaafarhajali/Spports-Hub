@@ -1,163 +1,735 @@
 import 'package:flutter/material.dart';
+import '../models/stadium.dart';
+import '../models/academy.dart';
+import '../services/stadium_service.dart';
+import '../services/academy_service.dart';
+import '../utils/image_utils.dart';
+import '../widgets/network_image.dart';
 
-/// Home screen that displays featured facilities, upcoming events, and popular academies
-class HomeScreen extends StatelessWidget {
+/// Home screen with modern UI design and real backend integration
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+@override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  bool _isLoading = true;
+  List<Stadium> _featuredStadiums = [];
+  List<Academy> _popularAcademies = [];
+  String? _errorMessage;
+
+  final StadiumService _stadiumService = StadiumService();
+  final AcademyService _academyService = AcademyService();
+
   @override
-  Widget build(BuildContext context) {
-    // ignore: unused_local_variable
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    // ignore: unused_local_variable
-    final colorScheme = Theme.of(context).colorScheme;
+  void initState() {
+    super.initState();
+    _initAnimations();
+    _loadData();
+  }
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SizedBox(height: 8),
+  void _initAnimations() {
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
 
-        // Featured Banner
-        _buildFeatureBanner(context),
-        const SizedBox(height: 24),
-
-        _buildSectionTitle('Featured Facilities', context),
-        const SizedBox(height: 12),
-        _buildFeaturedFacilities(context),
-        const SizedBox(height: 24),
-
-        _buildSectionTitle('Upcoming Events', context),
-        const SizedBox(height: 12),
-        _buildUpcomingEvents(context),
-        const SizedBox(height: 24),
-
-        _buildSectionTitle('Popular Academies', context),
-        const SizedBox(height: 12),
-        _buildPopularAcademies(context),
-      ],
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
     );
   }
 
-  /// Builds a promotional banner at the top of the home screen
-  Widget _buildFeatureBanner(BuildContext context) {
-    // ignore: unused_local_variable
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final stadiums = await _stadiumService.getStadiums();
+      final academies = await _academyService.getAcademies();
+
+      setState(() {
+        _featuredStadiums = stadiums.take(3).toList();
+        _popularAcademies = academies.take(4).toList();
+        _isLoading = false;
+      });
+
+      _startAnimations();
+    } catch (e) {
+      try {
+        final mockStadiums = await _stadiumService.getMockStadiums();
+        final mockAcademies = await _academyService.getMockAcademies();
+
+        setState(() {
+          _featuredStadiums = mockStadiums.take(3).toList();
+          _popularAcademies = mockAcademies.take(4).toList();
+          _isLoading = false;
+          _errorMessage = 'Using demo data';
+        });
+
+        _startAnimations();
+      } catch (mockError) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to load data';
+        });
+      }
+    }
+  }
+
+  void _startAnimations() {
+    _fadeController.forward();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _slideController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView(
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+        children: [
+          SizedBox(height: isSmallScreen ? 4 : 8),
+
+          // Welcome Banner
+          FadeTransition(
+            opacity: _fadeAnimation,
+            child: _buildWelcomeBanner(context),
+          ),
+          SizedBox(height: isSmallScreen ? 16 : 24),
+
+          // Quick Actions
+          SlideTransition(
+            position: _slideAnimation,
+            child: _buildQuickActions(context),
+          ),
+          SizedBox(height: isSmallScreen ? 16 : 24),
+
+          // Error message if any
+          if (_errorMessage != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.orange, fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Featured Stadiums
+          _buildSectionHeader('Featured Stadiums', Icons.stadium, context),
+          SizedBox(height: isSmallScreen ? 8 : 12),
+          _isLoading
+              ? _buildLoadingCards()
+              : _buildFeaturedStadiums(context),
+          SizedBox(height: isSmallScreen ? 16 : 24),
+
+          // Popular Academies
+          _buildSectionHeader('Popular Academies', Icons.school, context),
+          SizedBox(height: isSmallScreen ? 8 : 12),
+          _isLoading
+              ? _buildLoadingCards()
+              : _buildPopularAcademies(context),
+          SizedBox(height: isSmallScreen ? 16 : 24),
+
+          // Upcoming Events
+          _buildSectionHeader('Upcoming Events', Icons.event, context),
+          SizedBox(height: isSmallScreen ? 8 : 12),
+          _buildUpcomingEvents(context),
+          SizedBox(height: isSmallScreen ? 16 : 24),
+
+          // Additional Actions
+          _buildAdditionalActions(context),
+          SizedBox(height: isSmallScreen ? 16 : 24),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a stunning hero banner
+  Widget _buildWelcomeBanner(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    final hour = DateTime.now().hour;
+    String greeting;
+    String subtitle;
+    IconData greetingIcon;
+    List<Color> gradientColors;
+
+    if (hour < 12) {
+      greeting = 'Good Morning!';
+      subtitle = 'Start your day with some sports';
+      greetingIcon = Icons.wb_sunny;
+      gradientColors = [const Color(0xFF4facfe), const Color(0xFF00f2fe)];
+    } else if (hour < 17) {
+      greeting = 'Good Afternoon!';
+      subtitle = 'Perfect time for sports activities';
+      greetingIcon = Icons.wb_sunny_outlined;
+      gradientColors = [const Color(0xFFa18cd1), const Color(0xFFfbc2eb)];
+    } else {
+      greeting = 'Good Evening!';
+      subtitle = 'Wind down with evening sports';
+      greetingIcon = Icons.nightlight_round;
+      gradientColors = [const Color(0xFF667eea), const Color(0xFF764ba2)];
+    }
 
     return Container(
-      height: 160,
+      constraints: const BoxConstraints(
+        minHeight: 180,
+        maxHeight: 220,
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            colorScheme.primary,
-            colorScheme.primary.withAlpha(179),
-          ], // 0.7 opacity
+          colors: gradientColors,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(26), // 0.1 opacity
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: gradientColors[0].withOpacity(0.4),
+            blurRadius: 25,
+            offset: const Offset(0, 12),
+            spreadRadius: 0,
           ),
         ],
       ),
       child: Stack(
         children: [
-          // Decorative circles
+          // Animated floating elements
           Positioned(
-            right: -50,
-            top: -50,
+            right: -40,
+            top: -20,
             child: Container(
-              width: 150,
-              height: 150,
+              width: 140,
+              height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withAlpha(26), // 0.1 opacity
+                color: Colors.white.withOpacity(0.15),
               ),
             ),
           ),
           Positioned(
-            left: -30,
-            bottom: -30,
+            left: -25,
+            bottom: -25,
             child: Container(
-              width: 100,
-              height: 100,
+              width: 90,
+              height: 90,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withAlpha(26), // 0.1 opacity
+                color: Colors.white.withOpacity(0.1),
               ),
             ),
           ),
-
-          // Content
+          Positioned(
+            right: 40,
+            bottom: 20,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.08),
+              ),
+            ),
+          ),
+          
+          // Main content
           Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.center, // Align items in the center
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize:
-                        MainAxisSize.min, // Add this to prevent overflow
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Summer Special Offer',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                // Header with icon and greeting
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 4), // Reduce spacing
-                      Text(
-                        'Get 20% off on all facility bookings this month',
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(230), // 0.9 opacity
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1, // Reduce to 1 line
+                      child: Icon(
+                        greetingIcon,
+                        color: Colors.white,
+                        size: 24,
                       ),
-                      const SizedBox(height: 8), // Reduce spacing
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: colorScheme.primary,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16, // Reduce padding
-                            vertical: 8, // Reduce padding
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greeting,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: isSmallScreen ? 22 : 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        child: const Text(
-                          'Book Now',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: isSmallScreen ? 12 : 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10), // Reduce width
-                Icon(
-                  Icons.sports_soccer,
-                  size: 50, // Reduce size
-                  color: Colors.white.withAlpha(204), // 0.8 opacity
+                
+                const Spacer(),
+                
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/stadiums');
+                          },
+                          icon: const Icon(Icons.stadium, size: 20),
+                          label: const Text(
+                            'Book Stadium',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: gradientColors[0],
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/academies');
+                        },
+                        icon: const Icon(Icons.school, color: Colors.white),
+                        iconSize: 24,
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/bookings');
+                        },
+                        icon: const Icon(Icons.bookmark_outline, color: Colors.white),
+                        iconSize: 24,
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Builds enhanced quick action cards
+  Widget _buildQuickActions(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildEnhancedActionCard(
+                'Explore Stadiums',
+                'Find the perfect venue',
+                Icons.stadium,
+                const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
+                () => Navigator.pushNamed(context, '/stadiums'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildEnhancedActionCard(
+                'My Bookings',
+                'View your reservations',
+                Icons.event_note,
+                const LinearGradient(colors: [Color(0xFF43e97b), Color(0xFF38f9d7)]),
+                () => Navigator.pushNamed(context, '/bookings'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildEnhancedActionCard(
+                'Sports Academies',
+                'Join training programs',
+                Icons.school,
+                const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
+                () => Navigator.pushNamed(context, '/academies'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildEnhancedActionCard(
+                'Tournaments',
+                'Compete with others',
+                Icons.emoji_events,
+                const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
+                () => Navigator.pushNamed(context, '/tournaments'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Builds enhanced action card with gradient and better design
+  Widget _buildEnhancedActionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    LinearGradient gradient,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(
+          minHeight: 90,
+          maxHeight: 110,
+        ),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: gradient.colors.first.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Background pattern
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds enhanced section header with better navigation
+  Widget _buildSectionHeader(String title, IconData icon, BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF667eea).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : const Color(0xFF2D3748),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                Text(
+                  'Discover the best options',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF667eea).withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: TextButton.icon(
+              onPressed: () {
+                if (title.contains('Stadium')) {
+                  Navigator.pushNamed(context, '/stadiums');
+                } else if (title.contains('Academies')) {
+                  Navigator.pushNamed(context, '/academies');
+                } else if (title.contains('Events')) {
+                  Navigator.pushNamed(context, '/tournaments');
+                }
+              },
+              icon: const Icon(Icons.arrow_forward_ios, size: 14),
+              label: const Text(
+                'View All',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF667eea),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds loading cards placeholder
+  Widget _buildLoadingCards() {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: 180,
+        maxHeight: 220,
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return Container(
+            width: MediaQuery.of(context).size.width * 0.75,
+            constraints: const BoxConstraints(
+              minWidth: 260,
+              maxWidth: 300,
+            ),
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 16,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 12,
+                        width: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -194,35 +766,248 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Builds the horizontal list of featured sports facilities
-  Widget _buildFeaturedFacilities(BuildContext context) {
-    return SizedBox(
-      height: 210, // Increase height slightly to accommodate content
-      child: ListView(
+  /// Builds the horizontal list of featured stadiums
+  Widget _buildFeaturedStadiums(BuildContext context) {
+    if (_featuredStadiums.isEmpty) {
+      return const SizedBox(
+        height: 200,
+        child: Center(
+          child: Text(
+            'No stadiums available',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: 200,
+        maxHeight: 240,
+      ),
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        children: [
-          _buildFacilityCard(
-            'City Sports Arena',
-            'Football, Basketball',
-            4.8,
-            'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e', // Updated URL
-            context,
-          ),
-          _buildFacilityCard(
-            'Olympic Swimming Pool',
-            'Swimming',
-            4.5,
-            'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd', // Updated URL
-            context,
-          ),
-          _buildFacilityCard(
-            'Green Park Tennis',
-            'Tennis, Padel',
-            4.7,
-            'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0', // This URL is fine
-            context,
-          ),
-        ],
+        itemCount: _featuredStadiums.length,
+        itemBuilder: (context, index) {
+          final stadium = _featuredStadiums[index];
+          return _buildStadiumCard(stadium, context);
+        },
+      ),
+    );
+  }
+
+  /// Builds an enhanced stadium card with modern design
+  Widget _buildStadiumCard(Stadium stadium, BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/stadiums'),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.8,
+        constraints: const BoxConstraints(
+          minWidth: 280,
+          maxWidth: 320,
+        ),
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1A202C) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode 
+                  ? Colors.black.withOpacity(0.3)
+                  : const Color(0xFF4facfe).withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Stadium image with enhanced overlay
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              child: Stack(
+                children: [
+                  stadium.photos.isNotEmpty
+                      ? NetworkImageWithErrorHandler(
+                          imageUrl: ImageUtils.getStadiumImageUrl(stadium.photos.first),
+                          height: 160,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          height: 160,
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.stadium,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+
+                  // Gradient overlay
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.1),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Price badge with enhanced design
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '${stadium.pricePerMatch.toStringAsFixed(0)} LBP',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Rating badge
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '4.8',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Stadium details with better layout
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    stadium.name.split(' ').map((word) => 
+                      word.isEmpty ? word : word[0].toUpperCase() + word.substring(1)
+                    ).join(' '),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : const Color(0xFF2D3748),
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4facfe).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(
+                          Icons.location_on,
+                          size: 14,
+                          color: const Color(0xFF4facfe),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          stadium.location,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Book Now',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -239,7 +1024,11 @@ class HomeScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      width: 240,
+      width: MediaQuery.of(context).size.width * 0.6,
+      constraints: const BoxConstraints(
+        minWidth: 220,
+        maxWidth: 260,
+      ),
       margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -555,7 +1344,9 @@ class HomeScreen extends StatelessWidget {
                 size: 16,
                 color: colorScheme.primary,
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushNamed(context, '/tournaments');
+              },
               // Reduce padding to save space
               padding: const EdgeInsets.all(8),
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
@@ -568,32 +1359,197 @@ class HomeScreen extends StatelessWidget {
 
   /// Builds the horizontal list of popular academies
   Widget _buildPopularAcademies(BuildContext context) {
-    return SizedBox(
-      // Increase height slightly to accommodate all content
-      height: 120,
-      child: ListView(
+    if (_popularAcademies.isEmpty) {
+      return const SizedBox(
+        height: 120,
+        child: Center(
+          child: Text(
+            'No academies available',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: 120,
+        maxHeight: 160,
+      ),
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        children: [
-          _buildAcademyCard(
-            'Elite Football Academy',
-            'Football',
-            Colors.green,
-            context,
-          ),
-          _buildAcademyCard(
-            'Tennis Pro Academy',
-            'Tennis',
-            Colors.orange,
-            context,
-          ),
-          _buildAcademyCard('Swim Masters', 'Swimming', Colors.blue, context),
-          _buildAcademyCard(
-            'Basketball Stars',
-            'Basketball',
-            Colors.red,
-            context,
-          ),
-        ],
+        itemCount: _popularAcademies.length,
+        itemBuilder: (context, index) {
+          final academy = _popularAcademies[index];
+          return _buildAcademyCardReal(academy, context);
+        },
+      ),
+    );
+  }
+
+  /// Builds an enhanced academy card with modern design
+  Widget _buildAcademyCardReal(Academy academy, BuildContext context) {
+    final gradients = [
+      const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)]),
+      const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
+      const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
+      const LinearGradient(colors: [Color(0xFF43e97b), Color(0xFF38f9d7)]),
+      const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
+      const LinearGradient(colors: [Color(0xFFd299c2), Color(0xFFfef9d7)]),
+    ];
+    final gradient = gradients[academy.hashCode % gradients.length];
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/academies'),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.5,
+        constraints: const BoxConstraints(
+          minWidth: 180,
+          maxWidth: 220,
+          minHeight: 140,
+          maxHeight: 160,
+        ),
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: gradient.colors.first.withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Decorative elements
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+            Positioned(
+              left: -20,
+              bottom: -20,
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.08),
+                ),
+              ),
+            ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon container
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.school,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 12),
+
+                  // Academy name
+                  Text(
+                    academy.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const Spacer(),
+
+                  // Sports chips
+                  if (academy.sports.isNotEmpty)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: academy.sports.take(2).map((sport) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            sport,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  
+                  const SizedBox(height: 8),
+
+                  // Rating and action
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            academy.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white,
+                          size: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -659,6 +1615,147 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Builds additional action buttons section
+  Widget _buildAdditionalActions(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF43e97b), Color(0xFF38f9d7)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'More Actions',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                'Create Team',
+                'Build your squad',
+                Icons.group_add,
+                const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)]),
+                () => Navigator.pushNamed(context, '/create_team'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionButton(
+                'Host Stadium',
+                'List your venue',
+                Icons.stadium,
+                const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
+                () => Navigator.pushNamed(context, '/create_stadium'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                'My Profile',
+                'View your info',
+                Icons.person,
+                const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
+                () => Navigator.pushNamed(context, '/profile'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionButton(
+                'Notifications',
+                'Stay updated',
+                Icons.notifications,
+                const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
+                () => Navigator.pushNamed(context, '/notifications'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Builds individual action button
+  Widget _buildActionButton(
+    String title,
+    String subtitle,
+    IconData icon,
+    LinearGradient gradient,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: gradient.colors.first.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                icon,
+                color: Colors.white,
+                size: 20,
+              ),
+              const Spacer(),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

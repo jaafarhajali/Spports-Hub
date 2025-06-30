@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/academy.dart';
 import '../services/academy_service.dart';
+import '../services/app_config.dart';
+import 'academy_form_screen.dart';
 
 /// Screen that displays available sports academies
 class AcademiesScreen extends StatefulWidget {
@@ -18,11 +20,20 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
   List<Academy> _allAcademies = [];
   List<Academy> _filteredAcademies = [];
   final AcademyService _academyService = AcademyService();
+  bool _canCreateAcademies = false;
 
   @override
   void initState() {
     super.initState();
     _loadAcademies();
+    _checkCreatePermission();
+  }
+
+  Future<void> _checkCreatePermission() async {
+    final canCreate = await _academyService.canCreateAcademies();
+    setState(() {
+      _canCreateAcademies = canCreate;
+    });
   }
   
   @override
@@ -85,6 +96,67 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
     }
   }
 
+  Future<void> _navigateToCreateAcademy() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AcademyFormScreen(),
+      ),
+    );
+    
+    if (result == true) {
+      _loadAcademies(); // Reload academies after creating
+    }
+  }
+
+  Future<void> _navigateToEditAcademy(Academy academy) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AcademyFormScreen(academy: academy),
+      ),
+    );
+    
+    if (result == true) {
+      _loadAcademies(); // Reload academies after editing
+    }
+  }
+
+  Future<void> _deleteAcademy(Academy academy) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Academy'),
+        content: Text('Are you sure you want to delete "${academy.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _academyService.deleteAcademy(academy.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Academy deleted successfully')),
+        );
+        _loadAcademies(); // Reload academies after deletion
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting academy: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -100,6 +172,13 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
           ],
         ),
       ),
+      floatingActionButton: _canCreateAcademies
+          ? FloatingActionButton(
+              onPressed: _navigateToCreateAcademy,
+              heroTag: "academies_main_fab",
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
@@ -220,7 +299,7 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
                 // Academy image
                 academy.photos.isNotEmpty
                     ? Image.network(
-                      academy.photos.first,
+                      _getImageUrl(academy.photos.first),
                       height: 160,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -259,6 +338,58 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
                       ],
                     ),
                   ),
+                ),
+
+                // Edit/Delete menu (only show if user can edit this specific academy)
+                FutureBuilder<bool>(
+                  future: _academyService.canEditAcademy(academy),
+                  builder: (context, snapshot) {
+                    if (snapshot.data == true) {
+                      return Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.white),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _navigateToEditAcademy(academy);
+                              } else if (value == 'delete') {
+                                _deleteAcademy(academy);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
                 ),
               ],
             ),
@@ -577,5 +708,26 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
         ],
       ),
     );
+  }
+
+  // Helper method to construct proper image URL
+  String _getImageUrl(String? photoPath) {
+    // Handle null or empty photo path
+    if (photoPath == null || photoPath.isEmpty) {
+      return ''; // Return empty string for placeholder handling
+    }
+    
+    // If the path already starts with http, return as is
+    if (photoPath.startsWith('http')) {
+      return photoPath;
+    }
+    
+    // If it's a relative path starting with /images, construct full URL
+    if (photoPath.startsWith('/images')) {
+      return '${AppConfig.baseUrl}$photoPath';
+    }
+    
+    // If it's just a filename, assume it's in the academy images directory
+    return '${AppConfig.baseUrl}/images/academiesImages/$photoPath';
   }
 }
