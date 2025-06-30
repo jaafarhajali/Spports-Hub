@@ -126,4 +126,75 @@ class BookingService {
       return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
   }
+
+  // Get bookings for stadium owner (owner can see all bookings for their stadiums)
+  Future<List<Map<String, dynamic>>> getBookingsForOwner(String stadiumId) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/dashboard/stadiums/$stadiumId/bookings'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return List<Map<String, dynamic>>.from(responseData['data']);
+        }
+        return [];
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to load bookings');
+      }
+    } catch (e) {
+      print('Get bookings for owner error: $e');
+      return [];
+    }
+  }
+
+  // Owner cancels a booking (stadium owner can cancel bookings for their stadiums)
+  Future<Map<String, dynamic>> ownerCancelBooking({
+    required String stadiumId,
+    required String bookingId,
+  }) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/dashboard/stadiums/$stadiumId/bookings/$bookingId/cancel'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': responseData['message'],
+          'data': responseData['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to cancel booking',
+        };
+      }
+    } catch (e) {
+      print('Owner cancel booking error: $e');
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+    }
+  }
 }

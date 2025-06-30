@@ -243,7 +243,7 @@ class UserService {
 
     // Static files are served without the /api prefix
     // Backend serves static files from /public directory
-    final baseUrl = AppConfig.apiUrl.replaceAll('/api', '');
+    final baseUrl = AppConfig.baseUrl;
     final fullUrl = '$baseUrl$profilePhoto';
     print('Generated profile photo URL: $fullUrl');
     return fullUrl;
@@ -254,9 +254,121 @@ class UserService {
   String getTestProfilePhotoUrl() {
     // Using one of the existing images from the backend
     final testImage = '/images/user/user-1750864413599.jpg';
-    final baseUrl = AppConfig.apiUrl.replaceAll('/api', '');
+    final baseUrl = AppConfig.baseUrl;
     final fullUrl = '$baseUrl$testImage';
     print('Test profile photo URL: $fullUrl');
     return fullUrl;
+  }
+
+  // Get all users (admin only)
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/dashboard/users'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('All users response: ${response.body}');
+        if (data['status'] == 'success' && data['data'] != null && data['data']['users'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']['users']);
+        }
+        return [];
+      } else {
+        throw Exception('Failed to load users: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error getting all users: $e');
+      rethrow;
+    }
+  }
+
+  // Get owners only (admin only)
+  Future<List<Map<String, dynamic>>> getOwners() async {
+    try {
+      final users = await getAllUsers();
+      return users.where((user) {
+        final roleName = user['role']?['name'] ?? '';
+        return roleName == 'stadiumOwner' || roleName == 'academyOwner';
+      }).toList();
+    } catch (e) {
+      print('Error getting owners: $e');
+      rethrow;
+    }
+  }
+
+  // Get stadium owners only (admin only)
+  Future<List<Map<String, dynamic>>> getStadiumOwners() async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/dashboard/users/stadium-owners'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Stadium owners response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+        return [];
+      } else {
+        throw Exception('Failed to load stadium owners: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error getting stadium owners: $e');
+      rethrow;
+    }
+  }
+
+  // Get academy owners only (admin only)
+  Future<List<Map<String, dynamic>>> getAcademyOwners() async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/dashboard/users/academy-owners'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Academy owners response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+        return [];
+      } else {
+        throw Exception('Failed to load academy owners: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error getting academy owners: $e');
+      rethrow;
+    }
   }
 }

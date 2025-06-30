@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/stadium.dart';
 import '../services/stadium_service.dart';
+import '../services/booking_service.dart';
 import '../services/app_config.dart';
+import '../auth_service.dart';
 import 'stadium_form_screen.dart';
 
 class MyStadiumsScreen extends StatefulWidget {
@@ -13,14 +15,30 @@ class MyStadiumsScreen extends StatefulWidget {
 
 class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
   final StadiumService _stadiumService = StadiumService();
+  final BookingService _bookingService = BookingService();
+  final AuthService _authService = AuthService();
   List<Stadium> _stadiums = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
-    _loadMyStadiums();
+    _checkAdminStatusAndLoadStadiums();
+  }
+
+  Future<void> _checkAdminStatusAndLoadStadiums() async {
+    try {
+      final userRole = await _authService.getUserRole();
+      setState(() {
+        _isAdmin = userRole == 'admin';
+      });
+      _loadMyStadiums();
+    } catch (e) {
+      print('Error checking admin status: $e');
+      _loadMyStadiums();
+    }
   }
 
   Future<void> _loadMyStadiums() async {
@@ -30,7 +48,15 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
     });
 
     try {
-      final stadiums = await _stadiumService.getMyStadiums();
+      List<Stadium> stadiums;
+      if (_isAdmin) {
+        // Admin can see all stadiums in the system
+        stadiums = await _stadiumService.getAllStadiumsAdmin();
+      } else {
+        // Regular users see only their own stadiums
+        stadiums = await _stadiumService.getMyStadiums();
+      }
+      
       setState(() {
         _stadiums = stadiums;
         _isLoading = false;
@@ -110,14 +136,14 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Stadiums'),
+        title: Text(_isAdmin ? 'All Stadiums (Admin)' : 'My Stadiums'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
             onPressed: _navigateToCreateStadium,
             icon: const Icon(Icons.add),
-            tooltip: 'Add Stadium',
+            tooltip: _isAdmin ? 'Create Stadium for Owner' : 'Add Stadium',
           ),
         ],
       ),
@@ -361,27 +387,89 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
                   ],
                 ),
 
+                // Owner information (admin only)
+                if (_isAdmin) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.admin_panel_settings,
+                          color: Colors.blue.shade700,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Owner: ${stadium.owner?['username'] ?? 'Unknown'}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                              if (stadium.owner?['email'] != null)
+                                Text(
+                                  stadium.owner!['email'],
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.blue.shade600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 16),
 
                 // Action buttons
-                Row(
+                Column(
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _navigateToEditStadium(stadium),
-                        icon: const Icon(Icons.edit, size: 18),
-                        label: const Text('Edit'),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _navigateToEditStadium(stadium),
+                            icon: const Icon(Icons.edit, size: 18),
+                            label: const Text('Edit'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _deleteStadium(stadium),
+                            icon: const Icon(Icons.delete, size: 18),
+                            label: const Text('Delete'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _deleteStadium(stadium),
-                        icon: const Icon(Icons.delete, size: 18),
-                        label: const Text('Delete'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _viewStadiumBookings(stadium),
+                        icon: const Icon(Icons.event_note, size: 18),
+                        label: const Text('View Bookings'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
@@ -434,6 +522,300 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _viewStadiumBookings(Stadium stadium) async {
+    try {
+      final bookings = await _bookingService.getBookingsForOwner(stadium.id);
+      
+      if (!mounted) return;
+      
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => _buildBookingsBottomSheet(stadium, bookings),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading bookings: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  Widget _buildBookingsBottomSheet(Stadium stadium, List<Map<String, dynamic>> bookings) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      maxChildSize: 0.9,
+      minChildSize: 0.3,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bookings for ${stadium.name}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${bookings.length} total bookings',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // Bookings list
+              Expanded(
+                child: bookings.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.event_busy,
+                              size: 64,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No bookings found',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'This stadium has no bookings yet.',
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: bookings.length,
+                        itemBuilder: (context, index) {
+                          final booking = bookings[index];
+                          return _buildBookingCard(booking, stadium);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBookingCard(Map<String, dynamic> booking, Stadium stadium) {
+    final matchDate = DateTime.parse(booking['matchDate']);
+    final timeSlot = booking['timeSlot'];
+    final userName = booking['userId']?['username'] ?? 'Unknown User';
+    final userEmail = booking['userId']?['email'] ?? '';
+    final status = booking['status'];
+    final penaltyApplied = booking['penaltyApplied'] ?? false;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (userEmail.isNotEmpty)
+                        Text(
+                          userEmail,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _getStatusColor(status)),
+                  ),
+                  child: Text(
+                    status.toUpperCase(),
+                    style: TextStyle(
+                      color: _getStatusColor(status),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  '${matchDate.day}/${matchDate.month}/${matchDate.year}',
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+                const SizedBox(width: 24),
+                Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  timeSlot,
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+            
+            if (penaltyApplied) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.warning, size: 16, color: Colors.orange.shade600),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Penalty applied',
+                    style: TextStyle(
+                      color: Colors.orange.shade600,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            
+            if (status != 'cancelled') ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _cancelBookingAsOwner(booking, stadium),
+                  icon: const Icon(Icons.cancel, size: 18),
+                  label: const Text('Cancel Booking'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<void> _cancelBookingAsOwner(Map<String, dynamic> booking, Stadium stadium) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Booking'),
+        content: Text(
+          'Are you sure you want to cancel this booking for ${booking['userId']?['username'] ?? 'this user'}?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final result = await _bookingService.ownerCancelBooking(
+          stadiumId: stadium.id,
+          bookingId: booking['_id'],
+        );
+
+        if (mounted) {
+          if (result['success']) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Booking cancelled successfully')),
+            );
+            Navigator.pop(context); // Close the bottom sheet
+            _viewStadiumBookings(stadium); // Refresh the bookings
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(result['message'] ?? 'Failed to cancel booking')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString()}')),
+          );
+        }
+      }
+    }
   }
 
   String _getImageUrl(String? photoPath) {

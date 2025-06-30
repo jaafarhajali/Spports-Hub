@@ -206,9 +206,8 @@ class TournamentService {
         throw Exception('Authentication required');
       }
 
-      if (userRole != 'stadiumOwner' && userRole != 'admin') {
-        throw Exception('Stadium owner access required');
-      }
+      // Tournaments are accessible to all authenticated users
+      // Removed stadium owner restriction
 
       print('Fetching my tournaments');
 
@@ -265,10 +264,8 @@ class TournamentService {
         throw Exception('Authentication required');
       }
 
-      // Check if user has stadiumOwner role (as per backend requirement)
-      if (userRole != 'stadiumOwner' && userRole != 'admin') {
-        throw Exception('Only stadium owners can create tournaments');
-      }
+      // Tournaments can be created by any authenticated user
+      // Removed stadium owner restriction
 
       print('Creating tournament: $name at stadium: $stadiumId');
 
@@ -416,11 +413,11 @@ class TournamentService {
   // UTILITY METHODS
   // ============================================================================
 
-  /// Check if user can create tournaments (stadiumOwner or admin role)
+  /// Check if user can create tournaments (any authenticated user)
   Future<bool> canCreateTournaments() async {
     try {
-      final userRole = await _authService.getUserRole();
-      return userRole == 'stadiumOwner' || userRole == 'admin';
+      final token = await _authService.getToken();
+      return token != null;
     } catch (e) {
       return false;
     }

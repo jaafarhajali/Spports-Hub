@@ -67,41 +67,53 @@ class ImageUtils {
   }
   
   /// Get stadium image URL with proper path construction
-  static String getStadiumImageUrl(String photoPath) {
+  static String getStadiumImageUrl(String? photoPath) {
+    if (photoPath == null || photoPath.isEmpty) {
+      return '';
+    }
+    
     if (photoPath.startsWith('http')) {
       return photoPath;
     }
     
     if (photoPath.startsWith('/images')) {
-      return '${AppConfig.apiUrl}$photoPath';
+      return '${AppConfig.baseUrl}$photoPath';
     }
     
-    return '${AppConfig.apiUrl}/images/stadiumsImages/$photoPath';
+    return '${AppConfig.baseUrl}/images/stadiumsImages/$photoPath';
   }
   
   /// Get academy image URL with proper path construction
-  static String getAcademyImageUrl(String photoPath) {
+  static String getAcademyImageUrl(String? photoPath) {
+    if (photoPath == null || photoPath.isEmpty) {
+      return '';
+    }
+    
     if (photoPath.startsWith('http')) {
       return photoPath;
     }
     
     if (photoPath.startsWith('/images')) {
-      return '${AppConfig.apiUrl}$photoPath';
+      return '${AppConfig.baseUrl}$photoPath';
     }
     
-    return '${AppConfig.apiUrl}/images/academiesImages/$photoPath';
+    return '${AppConfig.baseUrl}/images/academiesImages/$photoPath';
   }
   
   /// Get tournament image URL with proper path construction
-  static String getTournamentImageUrl(String photoPath) {
+  static String getTournamentImageUrl(String? photoPath) {
+    if (photoPath == null || photoPath.isEmpty) {
+      return '';
+    }
+    
     if (photoPath.startsWith('http')) {
       return photoPath;
     }
     
     if (photoPath.startsWith('/images')) {
-      return '${AppConfig.apiUrl}$photoPath';
+      return '${AppConfig.baseUrl}$photoPath';
     }
     
-    return '${AppConfig.apiUrl}/images/tournamentsImages/$photoPath';
+    return '${AppConfig.baseUrl}/images/tournamentsImages/$photoPath';
   }
 }

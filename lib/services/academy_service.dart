@@ -100,6 +100,7 @@ class AcademyService {
     required String phoneNumber,
     required String email,
     List<File>? photos,
+    String? ownerId, // For admin to specify owner
   }) async {
     try {
       final token = await _authService.getToken();
@@ -122,6 +123,12 @@ class AcademyService {
       request.fields['location'] = location;
       request.fields['phoneNumber'] = phoneNumber;
       request.fields['email'] = email;
+      
+      // If admin is creating for specific owner
+      final userRole = await _authService.getUserRole();
+      if (userRole == 'admin' && ownerId != null) {
+        request.fields['ownerId'] = ownerId;
+      }
 
       if (photos != null && photos.isNotEmpty) {
         for (int i = 0; i < photos.length && i < 5; i++) {
@@ -287,6 +294,46 @@ class AcademyService {
       }
     } catch (e) {
       print('Get my academies error: $e');
+      return [];
+    }
+  }
+
+  // Get all academies in system (admin only)
+  Future<List<Academy>> getAllAcademiesAdmin() async {
+    try {
+      final token = await _authService.getToken();
+      final userRole = await _authService.getUserRole();
+
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      if (userRole != 'admin') {
+        throw Exception('Admin access required');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/dashboard/academies'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return (jsonData['data'] as List)
+              .map((academy) => Academy.fromJson(academy))
+              .toList();
+        } else {
+          return [];
+        }
+      } else {
+        throw Exception('Failed to load all academies');
+      }
+    } catch (e) {
+      print('Get all academies error: $e');
       return [];
     }
   }

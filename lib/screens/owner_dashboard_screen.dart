@@ -7,9 +7,9 @@ import '../models/academy.dart';
 import '../services/app_config.dart';
 import 'my_stadiums_screen.dart';
 import 'my_academies_screen.dart';
-import 'my_tournaments_screen.dart';
 import 'stadium_form_screen.dart';
 import 'academy_form_screen.dart';
+import 'my_tournaments_screen.dart';
 import 'create_tournament_screen.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
@@ -86,9 +86,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
       // Load counts based on user role
       if (_userRole == 'stadiumOwner' || _userRole == 'admin') {
         final stadiums = await _stadiumService.getMyStadiums();
+        final tournaments = await _tournamentService.getMyTournaments();
         if (mounted) {
           setState(() {
             _stadiumCount = stadiums.length;
+            _tournamentCount = tournaments.length;
           });
         }
       }
@@ -102,24 +104,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
         }
       }
 
-      // Load tournament count for stadium owners
-      if (_userRole == 'stadiumOwner' || _userRole == 'admin') {
-        try {
-          final tournaments = await _tournamentService.getMyTournaments();
-          if (mounted) {
-            setState(() {
-              _tournamentCount = tournaments.length;
-            });
-          }
-        } catch (e) {
-          print('Error loading tournaments: $e');
-          if (mounted) {
-            setState(() {
-              _tournamentCount = 0;
-            });
-          }
-        }
-      }
     } catch (e) {
       print('Error loading dashboard data: $e');
     } finally {
@@ -222,6 +206,32 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
           SnackBar(content: Text('Error deleting academy: ${e.toString()}')),
         );
       }
+    }
+  }
+
+  Future<void> _navigateToCreateStadium() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const StadiumFormScreen(),
+      ),
+    );
+
+    if (result == true) {
+      _loadData();
+    }
+  }
+
+  Future<void> _navigateToCreateTournament() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateTournamentScreen(),
+      ),
+    );
+
+    if (result == true) {
+      _loadData();
     }
   }
 
@@ -341,6 +351,24 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
                   ),
               ],
             ),
+            
+            // Tournament stats for stadium owners
+            if (_userRole == 'stadiumOwner' || _userRole == 'admin') ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Tournaments',
+                      _tournamentCount.toString(),
+                      Icons.emoji_events,
+                      Colors.orange,
+                    ),
+                  ),
+                  const Expanded(child: SizedBox()), // Empty space for balance
+                ],
+              ),
+            ],
           ] else ...[
             // Loading placeholder for stats
             Container(
@@ -353,13 +381,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
 
           const SizedBox(height: 16),
 
-          if (_userRole == 'stadiumOwner' || _userRole == 'admin')
-            _buildStatCard(
-              'Tournaments',
-              _tournamentCount.toString(),
-              Icons.emoji_events,
-              Colors.orange,
-            ),
 
           const SizedBox(height: 24),
 
@@ -397,6 +418,24 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
                   ),
               ],
             ),
+            
+            // Tournament quick action for stadium owners
+            if (_userRole == 'stadiumOwner' || _userRole == 'admin') ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      'Create Tournament',
+                      Icons.emoji_events,
+                      Colors.orange,
+                      () => _navigateToCreateTournament(),
+                    ),
+                  ),
+                  const Expanded(child: SizedBox()), // Empty space for balance
+                ],
+              ),
+            ],
           ] else ...[
             // Loading placeholder for quick actions
             Container(
@@ -407,15 +446,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
             ),
           ],
 
-          if (_userRole == 'stadiumOwner' || _userRole == 'admin') ...[
-            const SizedBox(height: 12),
-            _buildQuickActionCard(
-              'Create Tournament',
-              Icons.emoji_events,
-              Colors.orange,
-              () => _navigateToCreateTournament(),
-            ),
-          ],
 
           const SizedBox(height: 24),
 
@@ -460,7 +490,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
 
           const SizedBox(height: 12),
 
-          // Tournament management
+          // Tournament management for stadium owners
           if (_userRole == 'stadiumOwner' || _userRole == 'admin')
             _buildManagementCard(
               'My Tournaments',
@@ -474,6 +504,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
                 ),
               ),
             ),
+
+          const SizedBox(height: 12),
+
         ],
       ),
     );
@@ -768,28 +801,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
     }
 
     return '${AppConfig.baseUrl}/images/academiesImages/$photoPath';
-  }
-
-  Future<void> _navigateToCreateStadium() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const StadiumFormScreen()),
-    );
-
-    if (result == true) {
-      _loadData(); // Refresh data
-    }
-  }
-
-  Future<void> _navigateToCreateTournament() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CreateTournamentScreen()),
-    );
-
-    if (result == true) {
-      _loadData(); // Refresh data
-    }
   }
 
   Widget _buildQuickActionCard(

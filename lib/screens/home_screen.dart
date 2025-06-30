@@ -3,8 +3,6 @@ import '../models/stadium.dart';
 import '../models/academy.dart';
 import '../services/stadium_service.dart';
 import '../services/academy_service.dart';
-import '../utils/image_utils.dart';
-import '../widgets/network_image.dart';
 
 /// Home screen with modern UI design and real backend integration
 class HomeScreen extends StatefulWidget {

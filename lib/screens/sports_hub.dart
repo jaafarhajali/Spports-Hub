@@ -184,9 +184,6 @@ class _SportsHubState extends State<SportsHub>
     return _userRole == 'academyOwner' || _userRole == 'admin';
   }
 
-  bool _canCreateTournaments() {
-    return _userRole == 'stadiumOwner' || _userRole == 'admin';
-  }
 
   @override
   void dispose() {

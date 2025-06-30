@@ -103,6 +103,7 @@ class StadiumService {
     required Map<String, String> workingHours,
     required Map<String, dynamic> penaltyPolicy,
     List<File>? photos,
+    String? ownerId, // For admin to specify owner
   }) async {
     try {
       final token = await _authService.getToken();
@@ -131,6 +132,11 @@ class StadiumService {
       request.fields['maxPlayers'] = maxPlayers.toString();
       request.fields['workingHours'] = jsonEncode(workingHours);
       request.fields['penaltyPolicy'] = jsonEncode(penaltyPolicy);
+      
+      // If admin is creating for specific owner
+      if (userRole == 'admin' && ownerId != null) {
+        request.fields['ownerId'] = ownerId;
+      }
 
       if (photos != null && photos.isNotEmpty) {
         for (int i = 0; i < photos.length && i < 5; i++) {
@@ -195,6 +201,86 @@ class StadiumService {
       }
     } catch (e) {
       print('Get my stadiums error: $e');
+      return [];
+    }
+  }
+
+  // Get stadiums by specific owner ID (admin only)
+  Future<List<Stadium>> getStadiumsByOwnerId(String ownerId) async {
+    try {
+      final token = await _authService.getToken();
+      final userRole = await _authService.getUserRole();
+
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      if (userRole != 'admin') {
+        throw Exception('Admin access required');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/dashboard/stadiums/owner/$ownerId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return (jsonData['data'] as List)
+              .map((stadium) => Stadium.fromJson(stadium))
+              .toList();
+        } else {
+          return [];
+        }
+      } else {
+        throw Exception('Failed to load stadiums for owner');
+      }
+    } catch (e) {
+      print('Get stadiums by owner ID error: $e');
+      return [];
+    }
+  }
+
+  // Get all stadiums in system (admin only)
+  Future<List<Stadium>> getAllStadiumsAdmin() async {
+    try {
+      final token = await _authService.getToken();
+      final userRole = await _authService.getUserRole();
+
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      if (userRole != 'admin') {
+        throw Exception('Admin access required');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/dashboard/stadiums'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return (jsonData['data'] as List)
+              .map((stadium) => Stadium.fromJson(stadium))
+              .toList();
+        } else {
+          return [];
+        }
+      } else {
+        throw Exception('Failed to load all stadiums');
+      }
+    } catch (e) {
+      print('Get all stadiums error: $e');
       return [];
     }
   }
