@@ -332,52 +332,49 @@ class _HomeScreenState extends State<HomeScreen>
                 const Spacer(),
                 
                 // Action buttons
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Flexible(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/stadiums');
-                          },
-                          icon: const Icon(Icons.stadium, size: 18),
-                          label: Text(
-                            'Book Stadium',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: isSmallScreen ? 12 : 14,
-                            ),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: gradientColors[0],
-                            elevation: 0,
-                            padding: EdgeInsets.symmetric(
-                              vertical: isSmallScreen ? 10 : 14,
-                              horizontal: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/stadiums');
+                        },
+                        icon: const Icon(Icons.stadium, size: 18),
+                        label: Text(
+                          'Book Stadium',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: isSmallScreen ? 12 : 14,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: gradientColors[0],
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(
+                            vertical: isSmallScreen ? 10 : 14,
+                            horizontal: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 8),
                     Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
                           decoration: BoxDecoration(
