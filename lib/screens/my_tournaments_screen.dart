@@ -346,7 +346,7 @@ class _MyTournamentsScreenState extends State<MyTournamentsScreen> {
             _buildDetailItem(
               Icons.stadium,
               'Stadium',
-              tournament.stadiumId!, // This should be stadium name
+              tournament.stadiumId, // This should be stadium name
             ),
           ],
 

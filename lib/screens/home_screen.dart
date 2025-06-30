@@ -332,11 +332,13 @@ class _HomeScreenState extends State<HomeScreen>
                 const Spacer(),
                 
                 // Action buttons
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Expanded(
-                      flex: 2,
+                    Flexible(
                       child: Container(
+                        width: double.infinity,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
@@ -351,16 +353,22 @@ class _HomeScreenState extends State<HomeScreen>
                           onPressed: () {
                             Navigator.pushNamed(context, '/stadiums');
                           },
-                          icon: const Icon(Icons.stadium, size: 20),
-                          label: const Text(
+                          icon: const Icon(Icons.stadium, size: 18),
+                          label: Text(
                             'Book Stadium',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: isSmallScreen ? 12 : 14,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: gradientColors[0],
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: EdgeInsets.symmetric(
+                              vertical: isSmallScreen ? 10 : 14,
+                              horizontal: 16,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -368,41 +376,45 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1.5,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/academies');
+                            },
+                            icon: const Icon(Icons.school, color: Colors.white),
+                            iconSize: isSmallScreen ? 20 : 24,
+                            padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
+                          ),
                         ),
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/academies');
-                        },
-                        icon: const Icon(Icons.school, color: Colors.white),
-                        iconSize: 24,
-                        padding: const EdgeInsets.all(12),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1.5,
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/bookings');
+                            },
+                            icon: const Icon(Icons.bookmark_outline, color: Colors.white),
+                            iconSize: isSmallScreen ? 20 : 24,
+                            padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
+                          ),
                         ),
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/bookings');
-                        },
-                        icon: const Icon(Icons.bookmark_outline, color: Colors.white),
-                        iconSize: 24,
-                        padding: const EdgeInsets.all(12),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -443,52 +455,61 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildEnhancedActionCard(
-                'Explore Stadiums',
-                'Find the perfect venue',
-                Icons.stadium,
-                const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
-                () => Navigator.pushNamed(context, '/stadiums'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildEnhancedActionCard(
-                'My Bookings',
-                'View your reservations',
-                Icons.event_note,
-                const LinearGradient(colors: [Color(0xFF43e97b), Color(0xFF38f9d7)]),
-                () => Navigator.pushNamed(context, '/bookings'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildEnhancedActionCard(
-                'Sports Academies',
-                'Join training programs',
-                Icons.school,
-                const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
-                () => Navigator.pushNamed(context, '/academies'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildEnhancedActionCard(
-                'Tournaments',
-                'Compete with others',
-                Icons.emoji_events,
-                const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
-                () => Navigator.pushNamed(context, '/tournaments'),
-              ),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideScreen = constraints.maxWidth > 400;
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildEnhancedActionCard(
+                        'Explore Stadiums',
+                        'Find the perfect venue',
+                        Icons.stadium,
+                        const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
+                        () => Navigator.pushNamed(context, '/stadiums'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildEnhancedActionCard(
+                        'My Bookings',
+                        'View your reservations',
+                        Icons.event_note,
+                        const LinearGradient(colors: [Color(0xFF43e97b), Color(0xFF38f9d7)]),
+                        () => Navigator.pushNamed(context, '/bookings'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildEnhancedActionCard(
+                        'Sports Academies',
+                        'Join training programs',
+                        Icons.school,
+                        const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
+                        () => Navigator.pushNamed(context, '/academies'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildEnhancedActionCard(
+                        'Tournaments',
+                        'Compete with others',
+                        Icons.emoji_events,
+                        const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
+                        () => Navigator.pushNamed(context, '/tournaments'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -502,85 +523,94 @@ class _HomeScreenState extends State<HomeScreen>
     LinearGradient gradient,
     VoidCallback onTap,
   ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(
-          minHeight: 90,
-          maxHeight: 110,
-        ),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: gradient.colors.first.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-              spreadRadius: 0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isSmallScreen = screenWidth < 360;
+        final cardWidth = constraints.maxWidth;
+        
+        return GestureDetector(
+          onTap: onTap,
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: isSmallScreen ? 80 : 90,
+              maxHeight: isSmallScreen ? 100 : 110,
             ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Background pattern
-            Positioned(
-              right: -20,
-              top: -20,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.1),
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient.colors.first.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                  spreadRadius: 0,
                 ),
-              ),
+              ],
             ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: Colors.white,
-                      size: 20,
+            child: Stack(
+              children: [
+                // Background pattern - conditional based on space
+                if (cardWidth > 120)
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                // Content
+                Padding(
+                  padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          icon,
+                          color: Colors.white,
+                          size: isSmallScreen ? 16 : 20,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 12 : 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: isSmallScreen ? 9 : 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -796,212 +826,156 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// Builds an enhanced stadium card with modern design
+  /// Builds an enhanced stadium card with modern design (academy style)
   Widget _buildStadiumCard(Stadium stadium, BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final gradients = [
+      const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)]),
+      const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
+      const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
+      const LinearGradient(colors: [Color(0xFF43e97b), Color(0xFF38f9d7)]),
+      const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
+      const LinearGradient(colors: [Color(0xFFd299c2), Color(0xFFfef9d7)]),
+    ];
+    final gradient = gradients[stadium.hashCode % gradients.length];
 
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/stadiums'),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.8,
+        width: MediaQuery.of(context).size.width * 0.5,
         constraints: const BoxConstraints(
-          minWidth: 280,
-          maxWidth: 320,
+          minWidth: 180,
+          maxWidth: 220,
+          minHeight: 140,
+          maxHeight: 160,
         ),
         margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1A202C) : Colors.white,
+          gradient: gradient,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: isDarkMode 
-                  ? Colors.black.withOpacity(0.3)
-                  : const Color(0xFF4facfe).withOpacity(0.15),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: gradient.colors.first.withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
               spreadRadius: 0,
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // Stadium image with enhanced overlay
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              child: Stack(
-                children: [
-                  stadium.photos.isNotEmpty
-                      ? NetworkImageWithErrorHandler(
-                          imageUrl: ImageUtils.getStadiumImageUrl(stadium.photos.first),
-                          height: 160,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        )
-                      : Container(
-                          height: 160,
-                          width: double.infinity,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
-                            ),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.stadium,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-
-                  // Gradient overlay
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.1),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Price badge with enhanced design
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        '${stadium.pricePerMatch.toStringAsFixed(0)} LBP',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Rating badge
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 14),
-                          const SizedBox(width: 4),
-                          const Text(
-                            '4.8',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            // Decorative elements
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+            Positioned(
+              left: -20,
+              bottom: -20,
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.08),
+                ),
               ),
             ),
 
-            // Stadium details with better layout
+            // Content
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Icon container
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.stadium,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 12),
+
+                  // Stadium name
                   Text(
-                    stadium.name.split(' ').map((word) => 
-                      word.isEmpty ? word : word[0].toUpperCase() + word.substring(1)
-                    ).join(' '),
-                    style: TextStyle(
-                      fontSize: 18,
+                    stadium.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : const Color(0xFF2D3748),
                       letterSpacing: -0.3,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4facfe).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Icon(
-                          Icons.location_on,
-                          size: 14,
-                          color: const Color(0xFF4facfe),
-                        ),
+                  
+                  const Spacer(),
+
+                  // Location and price info
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${stadium.pricePerMatch.toStringAsFixed(0)} LBP',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          stadium.location,
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 8),
+
+                  // Rating and action
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 16),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '4.8',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white,
+                          size: 12,
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Book Now',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -1648,52 +1622,60 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionButton(
-                'Create Team',
-                'Build your squad',
-                Icons.group_add,
-                const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)]),
-                () => Navigator.pushNamed(context, '/create_team'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildActionButton(
-                'Host Stadium',
-                'List your venue',
-                Icons.stadium,
-                const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
-                () => Navigator.pushNamed(context, '/create_stadium'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionButton(
-                'My Profile',
-                'View your info',
-                Icons.person,
-                const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
-                () => Navigator.pushNamed(context, '/profile'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildActionButton(
-                'Notifications',
-                'Stay updated',
-                Icons.notifications,
-                const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
-                () => Navigator.pushNamed(context, '/notifications'),
-              ),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        'Create Team',
+                        'Build your squad',
+                        Icons.group_add,
+                        const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)]),
+                        () => Navigator.pushNamed(context, '/create_team'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionButton(
+                        'Join Tournament',
+                        'Compete with others',
+                        Icons.emoji_events,
+                        const LinearGradient(colors: [Color(0xFFfa709a), Color(0xFFfee140)]),
+                        () => Navigator.pushNamed(context, '/tournaments'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        'My Profile',
+                        'View your info',
+                        Icons.person,
+                        const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
+                        () => Navigator.pushNamed(context, '/profile'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionButton(
+                        'Notifications',
+                        'Stay updated',
+                        Icons.notifications,
+                        const LinearGradient(colors: [Color(0xFFa8edea), Color(0xFFfed6e3)]),
+                        () => Navigator.pushNamed(context, '/notifications'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -1707,56 +1689,63 @@ class _HomeScreenState extends State<HomeScreen>
     LinearGradient gradient,
     VoidCallback onTap,
   ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 80,
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: gradient.colors.first.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isSmallScreen = screenWidth < 360;
+        
+        return GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: isSmallScreen ? 70 : 80,
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient.colors.first.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                icon,
-                color: Colors.white,
-                size: 20,
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    icon,
+                    color: Colors.white,
+                    size: isSmallScreen ? 16 : 20,
+                  ),
+                  const Spacer(),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isSmallScreen ? 10 : 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: isSmallScreen ? 8 : 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              const Spacer(),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
