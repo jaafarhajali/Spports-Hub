@@ -126,37 +126,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: Theme.of(context).textTheme.headlineLarge,
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Google Sign-Up logic
-                    },
-                    icon: Image.asset(
-                      'assets/images/google_logo.png',
-                      height: 24,
-                      width: 24,
-                      errorBuilder:
-                          (context, error, stackTrace) =>
-                              Icon(Icons.g_mobiledata, size: 24),
-                    ),
-                    label: Text('Sign up with Google'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text('Or', style: TextStyle(color: Colors.grey)),
-                      ),
-                      Expanded(child: Divider(color: Colors.grey)),
-                    ],
-                  ),
-                  SizedBox(height: 10),
+                  SizedBox(height: 30),
                   TextFormField(
                     controller: _usernameController,
                     decoration: InputDecoration(

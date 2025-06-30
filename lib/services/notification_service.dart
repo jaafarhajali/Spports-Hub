@@ -133,6 +133,53 @@ class NotificationService {
     }
   }
 
+  // Write/Create a new notification
+  Future<bool> writeNotification({
+    required String userId,
+    required String message,
+    String type = 'other',
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      print('Creating notification for user: $userId');
+
+      final requestBody = {
+        'userId': userId,
+        'message': message,
+        'type': type,
+        'metadata': metadata ?? {},
+      };
+
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(requestBody),
+      ).timeout(const Duration(seconds: 10));
+
+      print('Write notification response status: ${response.statusCode}');
+      print('Write notification response: ${response.body}');
+
+      if (response.statusCode == 201) {
+        print('Successfully created notification');
+        return true;
+      } else {
+        print('Write notification error: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Write notification error: $e');
+      return false;
+    }
+  }
+
   // Clear all notifications for the current user
   Future<bool> clearAllNotifications() async {
     try {

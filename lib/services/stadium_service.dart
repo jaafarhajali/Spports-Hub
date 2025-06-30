@@ -230,10 +230,27 @@ class StadiumService {
       request.fields['location'] = location;
       request.fields['pricePerMatch'] = pricePerMatch.toString();
       request.fields['maxPlayers'] = maxPlayers.toString();
-      request.fields['workingHours'] = jsonEncode(workingHours);
-      request.fields['penaltyPolicy'] = jsonEncode(penaltyPolicy);
+      
+      // Send workingHours as nested fields
+      request.fields['workingHours[start]'] = workingHours['start'] ?? '';
+      request.fields['workingHours[end]'] = workingHours['end'] ?? '';
+      
+      // Send penaltyPolicy as nested fields
+      request.fields['penaltyPolicy[hoursBefore]'] = penaltyPolicy['hoursBefore']?.toString() ?? '0';
+      request.fields['penaltyPolicy[penaltyAmount]'] = penaltyPolicy['penaltyAmount']?.toString() ?? '0';
+
+      print('Updating stadium with fields:');
+      print('- name: $name');
+      print('- location: $location');
+      print('- pricePerMatch: $pricePerMatch');
+      print('- maxPlayers: $maxPlayers');
+      print('- workingHours[start]: ${workingHours['start']}');
+      print('- workingHours[end]: ${workingHours['end']}');
+      print('- penaltyPolicy[hoursBefore]: ${penaltyPolicy['hoursBefore']}');
+      print('- penaltyPolicy[penaltyAmount]: ${penaltyPolicy['penaltyAmount']}');
 
       if (photos != null && photos.isNotEmpty) {
+        print('Adding ${photos.length} photos');
         for (int i = 0; i < photos.length && i < 5; i++) {
           request.files.add(
             await http.MultipartFile.fromPath(
@@ -247,6 +264,9 @@ class StadiumService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
+      print('Update stadium response status: ${response.statusCode}');
+      print('Update stadium response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         if (jsonData['success'] == true && jsonData['data'] != null) {
@@ -255,6 +275,7 @@ class StadiumService {
           throw Exception('Failed to update stadium');
         }
       } else {
+        print('Stadium update error: ${response.body}');
         final errorData = jsonDecode(response.body);
         throw Exception(errorData['message'] ?? 'Failed to update stadium');
       }

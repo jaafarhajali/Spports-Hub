@@ -38,9 +38,10 @@ class AcademyService {
         final jsonData = jsonDecode(response.body);
 
         if (jsonData['success'] == true && jsonData['data'] != null) {
-          print('Successfully fetched ${jsonData['count']} academies');
+          final List<dynamic> academiesData = jsonData['data'] as List;
+          print('Successfully fetched ${academiesData.length} academies');
 
-          return (jsonData['data'] as List)
+          return academiesData
               .map((academy) => Academy.fromJson(academy))
               .toList();
         } else {
@@ -256,25 +257,33 @@ class AcademyService {
         throw Exception('Authentication required');
       }
 
+      print('Fetching my academies for user: $userId');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/dashboard/my-academies'),
+        Uri.parse('$baseUrl/dashboard/academies/owner/$userId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
 
+      print('My academies API response status: ${response.statusCode}');
+      print('My academies API response: ${response.body}');
+
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         if (jsonData['success'] == true && jsonData['data'] != null) {
+          print('Successfully fetched ${jsonData['data'].length} my academies');
           return (jsonData['data'] as List)
               .map((academy) => Academy.fromJson(academy))
               .toList();
         } else {
+          print('No my academies found');
           return [];
         }
       } else {
-        throw Exception('Failed to load my academies');
+        print('My academies API error: ${response.body}');
+        throw Exception('Failed to load my academies: ${response.statusCode}');
       }
     } catch (e) {
       print('Get my academies error: $e');

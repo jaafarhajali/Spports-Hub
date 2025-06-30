@@ -61,9 +61,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
   
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       final userRole = await _authService.getUserRole();
@@ -84,38 +86,48 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
       // Load counts based on user role
       if (_userRole == 'stadiumOwner' || _userRole == 'admin') {
         final stadiums = await _stadiumService.getMyStadiums();
-        setState(() {
-          _stadiumCount = stadiums.length;
-        });
+        if (mounted) {
+          setState(() {
+            _stadiumCount = stadiums.length;
+          });
+        }
       }
 
       if (_userRole == 'academyOwner' || _userRole == 'admin') {
         final academies = await _academyService.getMyAcademies();
-        setState(() {
-          _academyCount = academies.length;
-        });
+        if (mounted) {
+          setState(() {
+            _academyCount = academies.length;
+          });
+        }
       }
 
       // Load tournament count for stadium owners
       if (_userRole == 'stadiumOwner' || _userRole == 'admin') {
         try {
           final tournaments = await _tournamentService.getMyTournaments();
-          setState(() {
-            _tournamentCount = tournaments.length;
-          });
+          if (mounted) {
+            setState(() {
+              _tournamentCount = tournaments.length;
+            });
+          }
         } catch (e) {
           print('Error loading tournaments: $e');
-          setState(() {
-            _tournamentCount = 0;
-          });
+          if (mounted) {
+            setState(() {
+              _tournamentCount = 0;
+            });
+          }
         }
       }
     } catch (e) {
       print('Error loading dashboard data: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -126,20 +138,26 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
   Future<void> _loadMyAcademies() async {
     if (_userRole != 'academyOwner' && _userRole != 'admin') return;
 
-    setState(() {
-      _isLoadingAcademies = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoadingAcademies = true;
+      });
+    }
 
     try {
       final academies = await _academyService.getMyAcademies();
-      setState(() {
-        _academies = academies;
-        _isLoadingAcademies = false;
-      });
+      if (mounted) {
+        setState(() {
+          _academies = academies;
+          _isLoadingAcademies = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoadingAcademies = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingAcademies = false;
+        });
+      }
       print('Error loading academies: $e');
     }
   }
