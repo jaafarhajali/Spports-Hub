@@ -37,6 +37,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
   List<Map<String, dynamic>> _academyOwners = [];
   String? _selectedOwnerId;
   bool _loadingOwners = false;
+  Map<String, dynamic>? _currentOwner;
 
   @override
   void initState() {
@@ -90,6 +91,15 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
     _locationController.text = academy.location;
     _phoneController.text = academy.contact['phone'] ?? '';
     _emailController.text = academy.contact['email'] ?? '';
+    
+    // Set current owner for display in edit mode
+    if (academy.owner != null) {
+      _currentOwner = {
+        '_id': academy.owner!['_id'],
+        'username': academy.owner!['username'],
+        'email': academy.owner!['email'],
+      };
+    }
   }
 
   @override
@@ -312,6 +322,74 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
           color: colorScheme.onSurfaceVariant.withOpacity(0.7),
           fontSize: 14,
         ),
+      ),
+    );
+  }
+
+  Widget _buildOwnerDisplay() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey.shade800.withOpacity(0.5) : colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outline.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.person,
+              size: 20,
+              color: colorScheme.primary,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Academy Owner',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _currentOwner?['username'] ?? 'Unknown Owner',
+                  style: TextStyle(
+                    color: colorScheme.onBackground,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (_currentOwner?['email'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _currentOwner!['email']!,
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -557,9 +635,12 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
                 
                 const SizedBox(height: 20),
                 
-                // Owner Selection (Admin only)
-                if (_isAdmin) ...[ 
+                // Owner Selection (Admin only for create) or Owner Display (for edit)
+                if (_isAdmin && !_isEditMode) ...[ 
                   _buildOwnerSelection(),
+                  const SizedBox(height: 20),
+                ] else if (_isEditMode && _currentOwner != null) ...[
+                  _buildOwnerDisplay(),
                   const SizedBox(height: 20),
                 ],
                 
@@ -601,46 +682,92 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
               title: 'Contact Information',
               icon: Icons.contact_phone,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _phoneController,
-                        label: 'Phone Number',
-                        hint: '+1234567890',
-                        icon: Icons.phone,
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter phone number';
-                          }
-                          if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value)) {
-                            return 'Please enter a valid phone number';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _emailController,
-                        label: 'Email',
-                        hint: 'academy@example.com',
-                        icon: Icons.email,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter email';
-                          }
-                          if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 600) {
+                      // Mobile layout - stack vertically
+                      return Column(
+                        children: [
+                          _buildTextField(
+                            controller: _phoneController,
+                            label: 'Phone Number',
+                            hint: '+1234567890',
+                            icon: Icons.phone,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter phone number';
+                              }
+                              if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value)) {
+                                return 'Please enter a valid phone number';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _emailController,
+                            label: 'Email',
+                            hint: 'academy@example.com',
+                            icon: Icons.email,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter email';
+                              }
+                              if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
+                                return 'Please enter a valid email';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      );
+                    } else {
+                      // Desktop/tablet layout - side by side
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _phoneController,
+                              label: 'Phone Number',
+                              hint: '+1234567890',
+                              icon: Icons.phone,
+                              keyboardType: TextInputType.phone,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter phone number';
+                                }
+                                if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value)) {
+                                  return 'Please enter a valid phone number';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _emailController,
+                              label: 'Email',
+                              hint: 'academy@example.com',
+                              icon: Icons.email,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter email';
+                                }
+                                if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
+                                  return 'Please enter a valid email';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),

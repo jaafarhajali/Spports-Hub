@@ -41,6 +41,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
   List<Map<String, dynamic>> _stadiumOwners = [];
   String? _selectedOwnerId;
   bool _loadingOwners = false;
+  Map<String, dynamic>? _currentOwner;
 
   @override
   void initState() {
@@ -105,6 +106,15 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
     
     _penaltyHoursController.text = (hoursBefore?.toInt() ?? 0).toString();
     _penaltyAmountController.text = (penaltyAmount?.toDouble() ?? 0.0).toStringAsFixed(0);
+    
+    // Set current owner for display in edit mode
+    if (stadium.owner != null) {
+      _currentOwner = {
+        '_id': stadium.owner!['_id'],
+        'username': stadium.owner!['username'],
+        'email': stadium.owner!['email'],
+      };
+    }
   }
 
   @override
@@ -363,6 +373,74 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
     );
   }
 
+  Widget _buildOwnerDisplay() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey.shade800.withOpacity(0.5) : colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outline.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.person,
+              size: 20,
+              color: colorScheme.primary,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Stadium Owner',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _currentOwner?['username'] ?? 'Unknown Owner',
+                  style: TextStyle(
+                    color: colorScheme.onBackground,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (_currentOwner?['email'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _currentOwner!['email']!,
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOwnerSelection() {
     final colorScheme = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -401,6 +479,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
     
     return DropdownButtonFormField<String>(
       value: _selectedOwnerId,
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: 'Stadium Owner',
         hintText: 'Select owner or leave blank to assign to yourself',
@@ -469,22 +548,27 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
         ..._stadiumOwners.map((owner) {
           return DropdownMenuItem<String>(
             value: owner['_id']?.toString(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  owner['username'] ?? 'Unknown',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  owner['email'] ?? '',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    owner['username'] ?? 'Unknown',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                  Text(
+                    owner['email'] ?? '',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }).toList(),
@@ -613,9 +697,12 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
                 
                 const SizedBox(height: 20),
                 
-                // Owner Selection (Admin only)
-                if (_isAdmin) ...[ 
+                // Owner Selection (Admin only for create) or Owner Display (for edit)
+                if (_isAdmin && !_isEditMode) ...[ 
                   _buildOwnerSelection(),
+                  const SizedBox(height: 20),
+                ] else if (_isEditMode && _currentOwner != null) ...[
+                  _buildOwnerDisplay(),
                   const SizedBox(height: 20),
                 ],
               ],
@@ -628,65 +715,130 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
               title: 'Stadium Configuration',
               icon: Icons.settings,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _priceController,
-                        label: 'Price per Match',
-                        hint: 'Enter price in LBP',
-                        icon: Icons.attach_money,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                          TextInputFormatter.withFunction((oldValue, newValue) {
-                            final text = newValue.text;
-                            if (text.split('.').length > 2) {
-                              return oldValue;
-                            }
-                            return newValue;
-                          }),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 600) {
+                      // Mobile layout - stack vertically
+                      return Column(
+                        children: [
+                          _buildTextField(
+                            controller: _priceController,
+                            label: 'Price per Match',
+                            hint: 'Enter price in LBP',
+                            icon: Icons.attach_money,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                              TextInputFormatter.withFunction((oldValue, newValue) {
+                                final text = newValue.text;
+                                if (text.split('.').length > 2) {
+                                  return oldValue;
+                                }
+                                return newValue;
+                              }),
+                            ],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter price';
+                              }
+                              final doubleValue = double.tryParse(value);
+                              if (doubleValue == null) {
+                                return 'Please enter a valid number';
+                              }
+                              if (doubleValue <= 0) {
+                                return 'Price must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _maxPlayersController,
+                            label: 'Max Players',
+                            hint: 'Maximum capacity',
+                            icon: Icons.people,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter maximum players';
+                              }
+                              final intValue = int.tryParse(value);
+                              if (intValue == null) {
+                                return 'Please enter a valid number';
+                              }
+                              if (intValue <= 0) {
+                                return 'Maximum players must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
                         ],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter price';
-                          }
-                          final doubleValue = double.tryParse(value);
-                          if (doubleValue == null) {
-                            return 'Please enter a valid number';
-                          }
-                          if (doubleValue <= 0) {
-                            return 'Price must be greater than 0';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _maxPlayersController,
-                        label: 'Max Players',
-                        hint: 'Maximum capacity',
-                        icon: Icons.people,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter maximum players';
-                          }
-                          final intValue = int.tryParse(value);
-                          if (intValue == null) {
-                            return 'Please enter a valid number';
-                          }
-                          if (intValue <= 0) {
-                            return 'Maximum players must be greater than 0';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
+                      );
+                    } else {
+                      // Desktop/tablet layout - side by side
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _priceController,
+                              label: 'Price per Match',
+                              hint: 'Enter price in LBP',
+                              icon: Icons.attach_money,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                                TextInputFormatter.withFunction((oldValue, newValue) {
+                                  final text = newValue.text;
+                                  if (text.split('.').length > 2) {
+                                    return oldValue;
+                                  }
+                                  return newValue;
+                                }),
+                              ],
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter price';
+                                }
+                                final doubleValue = double.tryParse(value);
+                                if (doubleValue == null) {
+                                  return 'Please enter a valid number';
+                                }
+                                if (doubleValue <= 0) {
+                                  return 'Price must be greater than 0';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _maxPlayersController,
+                              label: 'Max Players',
+                              hint: 'Maximum capacity',
+                              icon: Icons.people,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter maximum players';
+                                }
+                                final intValue = int.tryParse(value);
+                                if (intValue == null) {
+                                  return 'Please enter a valid number';
+                                }
+                                if (intValue <= 0) {
+                                  return 'Maximum players must be greater than 0';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),
@@ -698,42 +850,84 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
               title: 'Working Hours',
               icon: Icons.schedule,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _startTimeController,
-                        label: 'Start Time',
-                        hint: 'Select opening time',
-                        icon: Icons.access_time,
-                        readOnly: true,
-                        onTap: () => _selectTime(_startTimeController),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select start time';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _endTimeController,
-                        label: 'End Time',
-                        hint: 'Select closing time',
-                        icon: Icons.access_time_filled,
-                        readOnly: true,
-                        onTap: () => _selectTime(_endTimeController),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select end time';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 600) {
+                      // Mobile layout - stack vertically
+                      return Column(
+                        children: [
+                          _buildTextField(
+                            controller: _startTimeController,
+                            label: 'Start Time',
+                            hint: 'Select opening time',
+                            icon: Icons.access_time,
+                            readOnly: true,
+                            onTap: () => _selectTime(_startTimeController),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select start time';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _endTimeController,
+                            label: 'End Time',
+                            hint: 'Select closing time',
+                            icon: Icons.access_time_filled,
+                            readOnly: true,
+                            onTap: () => _selectTime(_endTimeController),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select end time';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      );
+                    } else {
+                      // Desktop/tablet layout - side by side
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _startTimeController,
+                              label: 'Start Time',
+                              hint: 'Select opening time',
+                              icon: Icons.access_time,
+                              readOnly: true,
+                              onTap: () => _selectTime(_startTimeController),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please select start time';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _endTimeController,
+                              label: 'End Time',
+                              hint: 'Select closing time',
+                              icon: Icons.access_time_filled,
+                              readOnly: true,
+                              onTap: () => _selectTime(_endTimeController),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please select end time';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),
@@ -745,59 +939,118 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
               title: 'Penalty Policy',
               icon: Icons.policy,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _penaltyHoursController,
-                        label: 'Hours Before',
-                        hint: 'Cancellation deadline',
-                        icon: Icons.timer,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter hours';
-                          }
-                          final intValue = int.tryParse(value);
-                          if (intValue == null || intValue < 0) {
-                            return 'Please enter a valid number of hours';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _penaltyAmountController,
-                        label: 'Penalty Amount',
-                        hint: 'Amount in LBP',
-                        icon: Icons.payment,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                          TextInputFormatter.withFunction((oldValue, newValue) {
-                            final text = newValue.text;
-                            if (text.split('.').length > 2) {
-                              return oldValue;
-                            }
-                            return newValue;
-                          }),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 600) {
+                      // Mobile layout - stack vertically
+                      return Column(
+                        children: [
+                          _buildTextField(
+                            controller: _penaltyHoursController,
+                            label: 'Hours Before',
+                            hint: 'Cancellation deadline',
+                            icon: Icons.timer,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter hours';
+                              }
+                              final intValue = int.tryParse(value);
+                              if (intValue == null || intValue < 0) {
+                                return 'Please enter a valid number of hours';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _penaltyAmountController,
+                            label: 'Penalty Amount',
+                            hint: 'Amount in LBP',
+                            icon: Icons.payment,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                              TextInputFormatter.withFunction((oldValue, newValue) {
+                                final text = newValue.text;
+                                if (text.split('.').length > 2) {
+                                  return oldValue;
+                                }
+                                return newValue;
+                              }),
+                            ],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter penalty amount';
+                              }
+                              final doubleValue = double.tryParse(value);
+                              if (doubleValue == null || doubleValue < 0) {
+                                return 'Please enter a valid penalty amount';
+                              }
+                              return null;
+                            },
+                          ),
                         ],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter penalty amount';
-                          }
-                          final doubleValue = double.tryParse(value);
-                          if (doubleValue == null || doubleValue < 0) {
-                            return 'Please enter a valid penalty amount';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
+                      );
+                    } else {
+                      // Desktop/tablet layout - side by side
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _penaltyHoursController,
+                              label: 'Hours Before',
+                              hint: 'Cancellation deadline',
+                              icon: Icons.timer,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter hours';
+                                }
+                                final intValue = int.tryParse(value);
+                                if (intValue == null || intValue < 0) {
+                                  return 'Please enter a valid number of hours';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _penaltyAmountController,
+                              label: 'Penalty Amount',
+                              hint: 'Amount in LBP',
+                              icon: Icons.payment,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                                TextInputFormatter.withFunction((oldValue, newValue) {
+                                  final text = newValue.text;
+                                  if (text.split('.').length > 2) {
+                                    return oldValue;
+                                  }
+                                  return newValue;
+                                }),
+                              ],
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter penalty amount';
+                                }
+                                final doubleValue = double.tryParse(value);
+                                if (doubleValue == null || doubleValue < 0) {
+                                  return 'Please enter a valid penalty amount';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),
