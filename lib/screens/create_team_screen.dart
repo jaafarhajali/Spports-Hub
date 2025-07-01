@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/team_service.dart';
+import '../themes/app_theme.dart';
 
 class CreateTeamScreen extends StatefulWidget {
   const CreateTeamScreen({super.key});
@@ -39,9 +40,10 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Team created successfully!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Team created successfully!'),
+            backgroundColor: AppTheme.successGreen,
+            behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context, true); // Return true to indicate success
@@ -51,7 +53,8 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to create team: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorRed,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -66,16 +69,25 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+      backgroundColor: isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
       appBar: AppBar(
-        title: const Text('Create Team'),
+        title: Text(
+          'Create Team',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
+        iconTheme: IconThemeData(
+          color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -86,42 +98,86 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
             children: [
               // Header Section
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      colorScheme.primary,
-                      colorScheme.primary.withOpacity(0.8),
-                    ],
+                  gradient: const LinearGradient(
+                    colors: AppTheme.gradientBlue,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryBlue.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
-                child: Column(
+                child: Stack(
                   children: [
-                    Icon(
-                      Icons.group_add,
-                      size: 64,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Create Your Team',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    // Background pattern
+                    Positioned(
+                      right: -30,
+                      top: -30,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.1),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Start by giving your team a unique name',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
+                    Positioned(
+                      left: -40,
+                      bottom: -40,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.08),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
+                    ),
+                    // Content
+                    Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.group_add,
+                            size: 48,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Create Your Team',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Start by giving your team a unique name',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white.withOpacity(0.9),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -131,56 +187,111 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
 
               // Form Section
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.grey[800] : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  color: isDarkMode ? AppTheme.darkCard : AppTheme.lightCard,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? AppTheme.darkBorder.withOpacity(0.3)
+                        : AppTheme.lightBorder.withOpacity(0.5),
+                    width: 1,
+                  ),
+                  boxShadow: AppTheme.mediumShadow,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Team Information',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: AppTheme.gradientTeal,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.group,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Team Information',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     
-                    TextFormField(
-                      controller: _teamNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Team Name',
-                        hintText: 'Enter your team name',
-                        prefixIcon: Icon(Icons.group, color: colorScheme.primary),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: colorScheme.primary,
-                            width: 2,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: isDarkMode ? Colors.grey[700] : Colors.grey[50],
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: AppTheme.softShadow,
                       ),
+                      child: TextFormField(
+                        controller: _teamNameController,
+                        style: TextStyle(
+                          color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Team Name',
+                          hintText: 'Enter your team name',
+                          labelStyle: TextStyle(
+                            color: isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          prefixIcon: Container(
+                            margin: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: AppTheme.gradientBlue,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.group,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: isDarkMode ? AppTheme.darkBorder : AppTheme.lightBorder,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: isDarkMode ? AppTheme.darkBorder : AppTheme.lightBorder,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: AppTheme.errorRed, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: isDarkMode ? AppTheme.darkSurface : AppTheme.lightSurface,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter a team name';
@@ -194,6 +305,7 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
                         return null;
                       },
                       textCapitalization: TextCapitalization.words,
+                      ),
                     ),
 
                     const SizedBox(height: 24),
@@ -202,10 +314,12 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: isDarkMode
+                            ? AppTheme.darkSurface.withOpacity(0.5)
+                            : AppTheme.lightSecondary,
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: colorScheme.primary.withOpacity(0.3),
+                          color: AppTheme.accentPurple.withOpacity(0.3),
                           width: 1,
                         ),
                       ),
@@ -214,30 +328,44 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: colorScheme.primary,
-                                size: 20,
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: AppTheme.gradientPurple,
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.info_outline,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
                               Text(
                                 'Team Details',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                                  fontSize: 16,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           Text(
                             '• You will be the team leader\n'
                             '• You can invite other members after creation\n'
                             '• Team leaders can manage team settings\n'
                             '• Teams can join tournaments together',
                             style: TextStyle(
-                              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                              height: 1.5,
+                              color: isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                              height: 1.6,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -250,17 +378,33 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
               const SizedBox(height: 32),
 
               // Create Button
-              SizedBox(
+              Container(
                 height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: AppTheme.gradientGreen,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.successGreen.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _createTeam,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
+                    backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    elevation: 2,
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -271,16 +415,16 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : Row(
+                      : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add, size: 24),
-                            const SizedBox(width: 8),
+                            Icon(Icons.add, size: 20),
+                            SizedBox(width: 8),
                             Text(
                               'Create Team',
                               style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -291,22 +435,29 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
               const SizedBox(height: 16),
 
               // Cancel Button
-              SizedBox(
+              Container(
                 height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppTheme.errorRed,
+                    width: 1.5,
+                  ),
+                ),
                 child: OutlinedButton(
                   onPressed: _isLoading ? null : () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: colorScheme.primary),
+                    side: BorderSide.none,
+                    foregroundColor: AppTheme.errorRed,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Cancel',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: colorScheme.primary,
                     ),
                   ),
                 ),

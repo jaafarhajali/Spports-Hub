@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:first_attempt/services/user_service.dart';
 import 'package:first_attempt/widgets/user_profile_avatar.dart';
 import 'package:first_attempt/utils/image_utils.dart';
+import '../themes/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -208,132 +209,233 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.grey[50],
+      backgroundColor: isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: Text(
+          'My Profile',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+        ),
         actions: [
           if (!_isEditing)
-            IconButton(
-              icon: Icon(Icons.edit, color: colorScheme.primary),
-              onPressed: () => setState(() => _isEditing = true),
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: AppTheme.gradientBlue,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: AppTheme.softShadow,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.edit, color: Colors.white),
+                onPressed: () => setState(() => _isEditing = true),
+              ),
             ),
           if (_isEditing)
-            TextButton(
-              onPressed: () => setState(() {
-                    _isEditing = false;
-                    _selectedImage = null;
-                    _selectedImageBytes = null;
-                    // Reset form
-                    _usernameController.text = _userProfile?['username'] ?? '';
-                    _emailController.text = _userProfile?['email'] ?? '';
-                    _phoneController.text = _userProfile?['phoneNumber'] ?? '';
-                  }),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: colorScheme.primary),
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppTheme.errorRed, width: 1.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextButton(
+                onPressed: () => setState(() {
+                      _isEditing = false;
+                      _selectedImage = null;
+                      _selectedImageBytes = null;
+                      // Reset form
+                      _usernameController.text = _userProfile?['username'] ?? '';
+                      _emailController.text = _userProfile?['email'] ?? '';
+                      _phoneController.text = _userProfile?['phoneNumber'] ?? '';
+                    }),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: AppTheme.errorRed,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
         ],
       ),
-      body:
-          _isLoading && _userProfile == null
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: colorScheme.primary),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Loading your profile...',
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+      body: _isLoading && _userProfile == null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const CircularProgressIndicator(
+                      color: AppTheme.primaryBlue,
+                      strokeWidth: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Loading your profile...',
+                    style: TextStyle(
+                      color: isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          _buildProfileHeader(colorScheme, isDarkMode),
+                          const SizedBox(height: 32),
+                          _buildProfileCard(colorScheme, isDarkMode),
+                          const SizedBox(height: 24),
+                          if (_isEditing) _buildActionButtons(colorScheme),
+                          if (!_isEditing) _buildTestSection(colorScheme),
+                          const SizedBox(height: 32),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              )
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      _buildProfileHeader(colorScheme, isDarkMode),
-                      const SizedBox(height: 32),
-                      _buildProfileCard(colorScheme, isDarkMode),
-                      const SizedBox(height: 24),
-                      if (_isEditing) _buildActionButtons(colorScheme),
-                      if (!_isEditing) _buildTestSection(colorScheme),
-                      const SizedBox(height: 20),
-                    ],
                   ),
                 ),
-              ),
+              ],
+            ),
     );
   }
 
   Widget _buildProfileHeader(ColorScheme colorScheme, bool isDarkMode) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colorScheme.primary.withOpacity(0.1),
-            colorScheme.secondary.withOpacity(0.1),
-          ],
+        gradient: const LinearGradient(
+          colors: AppTheme.gradientBlue,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+        ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          UserProfileAvatar(
-            userProfile: _userProfile,
-            selectedImage: _selectedImage,
-            selectedImageBytes: _selectedImageBytes,
-            isEditing: _isEditing,
-            onImagePick: _pickImage,
-            userService: _userService,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _userProfile?['username'] ?? 'User',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _userProfile?['email'] ?? '',
-            style: TextStyle(
-              fontSize: 14,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              _userProfile?['role'] ?? 'User',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.primary,
+          // Background pattern
+          Positioned(
+            right: -30,
+            top: -30,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
               ),
             ),
+          ),
+          Positioned(
+            left: -40,
+            bottom: -40,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.08),
+              ),
+            ),
+          ),
+          // Content
+          Column(
+            children: [
+              UserProfileAvatar(
+                userProfile: _userProfile,
+                selectedImage: _selectedImage,
+                selectedImageBytes: _selectedImageBytes,
+                isEditing: _isEditing,
+                onImagePick: _pickImage,
+                userService: _userService,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                _userProfile?['username'] ?? 'User',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _userProfile?['email'] ?? '',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.verified_user,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _userProfile?['role'] ?? 'User',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -342,30 +444,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileCard(ColorScheme colorScheme, bool isDarkMode) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: isDarkMode ? AppTheme.darkCard : AppTheme.lightCard,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDarkMode
+              ? AppTheme.darkBorder.withOpacity(0.3)
+              : AppTheme.lightBorder.withOpacity(0.5),
+          width: 1,
+        ),
+        boxShadow: AppTheme.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Profile Information',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: AppTheme.gradientTeal,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Profile Information',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           _buildInputField(
             controller: _usernameController,
             label: 'Username',
@@ -450,35 +573,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return TextFormField(
-      controller: controller,
-      enabled: enabled,
-      keyboardType: keyboardType,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: colorScheme.primary),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: enabled ? AppTheme.softShadow : null,
+      ),
+      child: TextFormField(
+        controller: controller,
+        enabled: enabled,
+        keyboardType: keyboardType,
+        validator: validator,
+        style: TextStyle(
+          color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+          fontWeight: FontWeight.w500,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: enabled
+                ? (isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)
+                : (isDarkMode ? AppTheme.darkTextTertiary : AppTheme.lightTextTertiary),
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: enabled
+                  ? const LinearGradient(
+                      colors: AppTheme.gradientBlue,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: !enabled
+                  ? (isDarkMode ? AppTheme.darkTextTertiary : AppTheme.lightTextTertiary)
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 18,
+            ),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: isDarkMode ? AppTheme.darkBorder : AppTheme.lightBorder,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: isDarkMode ? AppTheme.darkBorder : AppTheme.lightBorder,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppTheme.errorRed, width: 2),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: isDarkMode
+                  ? AppTheme.darkBorder.withOpacity(0.3)
+                  : AppTheme.lightBorder.withOpacity(0.5),
+            ),
+          ),
+          filled: true,
+          fillColor: enabled
+              ? (isDarkMode ? AppTheme.darkSurface : AppTheme.lightSurface)
+              : (isDarkMode
+                  ? AppTheme.darkBackground
+                  : AppTheme.lightSecondary),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
-        ),
-        filled: true,
-        fillColor:
-            enabled
-                ? (isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey[50])
-                : (isDarkMode ? const Color(0xFF1A1A1A) : Colors.grey[100]),
       ),
     );
   }
@@ -491,89 +665,125 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color:
-              statusColor ?? (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color:
-                      statusColor ??
-                      (isDarkMode ? Colors.white : Colors.black87),
-                ),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? AppTheme.darkSurface.withOpacity(0.5)
+            : AppTheme.lightSecondary,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (statusColor ?? AppTheme.primaryBlue).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: statusColor ?? AppTheme.primaryBlue,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDarkMode ? AppTheme.darkTextTertiary : AppTheme.lightTextTertiary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor ??
+                        (isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildActionButtons(ColorScheme colorScheme) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _updateProfile,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: _isLoading
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        _isUploadingImage ? 'Uploading Image...' : 'Saving...',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  )
-                : const Text(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: AppTheme.gradientGreen,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.successGreen.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _updateProfile,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: _isLoading
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    _isUploadingImage ? 'Uploading Image...' : 'Saving...',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.save, size: 20),
+                  SizedBox(width: 8),
+                  Text(
                     'Save Changes',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-          ),
-        ),
-      ],
+                ],
+              ),
+      ),
     );
   }
 
@@ -588,37 +798,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTestSection(ColorScheme colorScheme) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Profile Photo Testing',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.primary,
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppTheme.darkCard : AppTheme.lightCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.accentPurple.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: AppTheme.gradientPurple,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.bug_report,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
+              const SizedBox(width: 12),
+              Text(
+                'Profile Photo Testing',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: AppTheme.gradientPurple,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.accentPurple.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
+            child: ElevatedButton.icon(
               onPressed: () => _testImageDisplay(),
-              icon: const Icon(Icons.image),
+              icon: const Icon(Icons.image, size: 18),
               label: const Text('Test Image Display'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.secondary,
+                backgroundColor: Colors.transparent,
                 foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Current profile photo: ${_userProfile?['profilePhoto'] ?? 'None'}',
-              style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? AppTheme.darkSurface.withOpacity(0.5)
+                  : AppTheme.lightSecondary,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
+            child: Text(
+              'Current profile photo: ${_userProfile?['profilePhoto'] ?? 'None'}',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

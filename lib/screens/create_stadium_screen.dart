@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/stadium_service.dart';
 import '../auth_service.dart';
+import '../themes/app_theme.dart';
 
 class CreateStadiumScreen extends StatefulWidget {
   const CreateStadiumScreen({super.key});
@@ -25,7 +26,7 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
   final StadiumService _stadiumService = StadiumService();
   final AuthService _authService = AuthService();
   final ImagePicker _imagePicker = ImagePicker();
-  
+
   final List<File> _selectedImages = [];
   bool _isLoading = false;
   bool _canCreateStadium = false;
@@ -49,7 +50,7 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
     setState(() {
       _canCreateStadium = canCreate;
     });
-    
+
     if (!canCreate) {
       _showErrorSnackBar('You do not have permission to create stadiums');
     }
@@ -57,67 +58,114 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor:
+          isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
       appBar: AppBar(
-        title: const Text('Create Stadium'),
+        title: Text(
+          'Create Stadium',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color:
+                isDarkMode
+                    ? AppTheme.darkTextPrimary
+                    : AppTheme.lightTextPrimary,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        iconTheme: IconThemeData(
+          color:
+              isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+        ),
       ),
-      body: !_canCreateStadium
-          ? _buildPermissionDenied()
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBasicInfoSection(),
-                    const SizedBox(height: 24),
-                    _buildWorkingHoursSection(),
-                    const SizedBox(height: 24),
-                    _buildPenaltyPolicySection(),
-                    const SizedBox(height: 24),
-                    _buildPhotosSection(),
-                    const SizedBox(height: 32),
-                    _buildCreateButton(),
-                  ],
+      body:
+          !_canCreateStadium
+              ? _buildPermissionDenied()
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBasicInfoSection(),
+                      const SizedBox(height: 24),
+                      _buildWorkingHoursSection(),
+                      const SizedBox(height: 24),
+                      _buildPenaltyPolicySection(),
+                      const SizedBox(height: 24),
+                      _buildPhotosSection(),
+                      const SizedBox(height: 32),
+                      _buildCreateButton(),
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 
   Widget _buildPermissionDenied() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.block,
-              size: 64,
-              color: Colors.grey.shade400,
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppTheme.errorRed.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.block,
+                size: 48,
+                color: AppTheme.errorRed,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               'Permission Denied',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
+                color:
+                    isDarkMode
+                        ? AppTheme.darkTextPrimary
+                        : AppTheme.lightTextPrimary,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'You need to be a stadium owner to create stadiums.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color:
+                    isDarkMode
+                        ? AppTheme.darkSurface.withOpacity(0.5)
+                        : AppTheme.lightSecondary,
+                borderRadius: BorderRadius.circular(12),
               ),
-              textAlign: TextAlign.center,
+              child: Text(
+                'You need to be a stadium owner to create stadiums.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color:
+                      isDarkMode
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),
@@ -126,110 +174,140 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
   }
 
   Widget _buildBasicInfoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Basic Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Stadium Name *',
-                hintText: 'Enter stadium name',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.sports_soccer),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Stadium name is required';
-                }
-                if (value.trim().length < 3) {
-                  return 'Stadium name must be at least 3 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _locationController,
-              decoration: const InputDecoration(
-                labelText: 'Location *',
-                hintText: 'Enter stadium location',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Location is required';
-                }
-                if (value.trim().length < 3) {
-                  return 'Location must be at least 3 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _priceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Price per Match (LBP) *',
-                      hintText: '50000',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.monetization_on),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Price is required';
-                      }
-                      final price = double.tryParse(value);
-                      if (price == null || price <= 0) {
-                        return 'Enter valid price';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _maxPlayersController,
-                    decoration: const InputDecoration(
-                      labelText: 'Max Players *',
-                      hintText: '22',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.people),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Max players required';
-                      }
-                      final players = int.tryParse(value);
-                      if (players == null || players <= 0) {
-                        return 'Enter valid number';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppTheme.darkCard : AppTheme.lightCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color:
+              isDarkMode
+                  ? AppTheme.darkBorder.withOpacity(0.3)
+                  : AppTheme.lightBorder.withOpacity(0.5),
+          width: 1,
         ),
+        boxShadow: AppTheme.mediumShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: AppTheme.gradientBlue,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.info, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Basic Information',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      isDarkMode
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildInputField(
+            controller: _nameController,
+            label: 'Stadium Name *',
+            hint: 'Enter stadium name',
+            icon: Icons.sports_soccer,
+            isDarkMode: isDarkMode,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Stadium name is required';
+              }
+              if (value.trim().length < 3) {
+                return 'Stadium name must be at least 3 characters';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _locationController,
+            decoration: const InputDecoration(
+              labelText: 'Location *',
+              hintText: 'Enter stadium location',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.location_on),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Location is required';
+              }
+              if (value.trim().length < 3) {
+                return 'Location must be at least 3 characters';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Price per Match (LBP) *',
+                    hintText: '50000',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.monetization_on),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Price is required';
+                    }
+                    final price = double.tryParse(value);
+                    if (price == null || price <= 0) {
+                      return 'Enter valid price';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextFormField(
+                  controller: _maxPlayersController,
+                  decoration: const InputDecoration(
+                    labelText: 'Max Players *',
+                    hintText: '22',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.people),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Max players required';
+                    }
+                    final players = int.tryParse(value);
+                    if (players == null || players <= 0) {
+                      return 'Enter valid number';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -317,10 +395,7 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
             const SizedBox(height: 8),
             Text(
               'Cancellation penalty for bookings',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 16),
             Row(
@@ -397,10 +472,7 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
             const SizedBox(height: 8),
             Text(
               'Add up to 5 photos (optional)',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 16),
             if (_selectedImages.isNotEmpty)
@@ -453,7 +525,10 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _selectedImages.length >= 5 ? null : _pickImageFromCamera,
+                    onPressed:
+                        _selectedImages.length >= 5
+                            ? null
+                            : _pickImageFromCamera,
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Camera'),
                   ),
@@ -461,7 +536,10 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _selectedImages.length >= 5 ? null : _pickImageFromGallery,
+                    onPressed:
+                        _selectedImages.length >= 5
+                            ? null
+                            : _pickImageFromGallery,
                     icon: const Icon(Icons.photo_library),
                     label: const Text('Gallery'),
                   ),
@@ -475,34 +553,59 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
   }
 
   Widget _buildCreateButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 50,
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: AppTheme.gradientGreen,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.successGreen.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: ElevatedButton(
         onPressed: _isLoading ? null : _createStadium,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.primary,
+          backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
+          elevation: 0,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: _isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
+        child:
+            _isLoading
+                ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Create Stadium',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              )
-            : const Text(
-                'Create Stadium',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
       ),
     );
   }
@@ -512,9 +615,10 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
       context: context,
       initialTime: TimeOfDay.now(),
     );
-    
+
     if (picked != null) {
-      final formattedTime = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      final formattedTime =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       controller.text = formattedTime;
     }
   }
@@ -527,7 +631,7 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
         maxHeight: 1024,
         imageQuality: 80,
       );
-      
+
       if (image != null) {
         setState(() {
           _selectedImages.add(File(image.path));
@@ -546,7 +650,7 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
         maxHeight: 1024,
         imageQuality: 80,
       );
-      
+
       if (image != null) {
         setState(() {
           _selectedImages.add(File(image.path));
@@ -604,7 +708,8 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: AppTheme.successGreen,
+        behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -614,8 +719,92 @@ class _CreateStadiumScreenState extends State<CreateStadiumScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: AppTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    required bool isDarkMode,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    String? suffixText,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: TextFormField(
+        controller: controller,
+        validator: validator,
+        keyboardType: keyboardType,
+        readOnly: readOnly,
+        onTap: onTap,
+        style: TextStyle(
+          color:
+              isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          suffixText: suffixText,
+          labelStyle: TextStyle(
+            color:
+                isDarkMode
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: AppTheme.gradientBlue,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: isDarkMode ? AppTheme.darkBorder : AppTheme.lightBorder,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: isDarkMode ? AppTheme.darkBorder : AppTheme.lightBorder,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppTheme.errorRed, width: 2),
+          ),
+          filled: true,
+          fillColor: isDarkMode ? AppTheme.darkSurface : AppTheme.lightSurface,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+        ),
       ),
     );
   }

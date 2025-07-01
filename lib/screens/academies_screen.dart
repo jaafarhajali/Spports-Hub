@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/academy.dart';
 import '../services/academy_service.dart';
 import '../services/app_config.dart';
+import '../themes/app_theme.dart';
 import 'academy_form_screen.dart';
 
 /// Screen that displays available sports academies
@@ -159,24 +160,51 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
       body: RefreshIndicator(
+        color: AppTheme.primaryBlue,
         onRefresh: _loadAcademies,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_errorMessage != null) _buildErrorBanner(),
-            _buildAcademiesList(),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_errorMessage != null) _buildErrorBanner(),
+                    const SizedBox(height: 8),
+                    _buildAcademiesList(),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
       floatingActionButton: _canCreateAcademies
-          ? FloatingActionButton(
-              onPressed: _navigateToCreateAcademy,
-              heroTag: "academies_main_fab",
-              child: const Icon(Icons.add),
+          ? Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  colors: AppTheme.gradientBlue,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: AppTheme.mediumShadow,
+              ),
+              child: FloatingActionButton(
+                onPressed: _navigateToCreateAcademy,
+                heroTag: "academies_main_fab",
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
             )
           : null,
     );
@@ -185,27 +213,54 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
 
   /// Builds error banner
   Widget _buildErrorBanner() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.withOpacity(0.3)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline, color: Colors.orange),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.orange),
-              ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.warningYellow.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.warningYellow.withOpacity(0.3)),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.warningYellow.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
+            child: const Icon(
+              Icons.info_outline,
+              color: AppTheme.warningYellow,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Notice',
+                  style: TextStyle(
+                    color: AppTheme.warningYellow,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _errorMessage!,
+                  style: TextStyle(
+                    color: AppTheme.warningYellow.withOpacity(0.8),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -213,10 +268,35 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
   /// Builds the list of academies
   Widget _buildAcademiesList() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 40.0),
-          child: CircularProgressIndicator(),
+          padding: const EdgeInsets.symmetric(vertical: 60.0),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const CircularProgressIndicator(
+                  color: AppTheme.primaryBlue,
+                  strokeWidth: 3,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading academies...',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -224,23 +304,41 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
     if (_filteredAcademies.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40.0),
+          padding: const EdgeInsets.symmetric(vertical: 60.0),
           child: Column(
             children: [
-              Icon(
-                Icons.school_outlined,
-                size: 48,
-                color: Colors.grey.shade400,
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Icon(
+                  Icons.school_outlined,
+                  size: 48,
+                  color: AppTheme.primaryBlue,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Text(
                 'No academies found',
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Try selecting a different category',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                'Try adjusting your search criteria',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
+                ),
               ),
             ],
           ),
@@ -251,11 +349,37 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Available Academies (${_filteredAcademies.length})',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: AppTheme.gradientBlue,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.school,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Available Academies (${_filteredAcademies.length})',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -263,7 +387,7 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
           itemBuilder: (context, index) {
             final academy = _filteredAcademies[index];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+              padding: const EdgeInsets.only(bottom: 20.0),
               child: _buildAcademyCard(academy),
             );
           },
@@ -275,18 +399,27 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
   /// Builds an individual academy card
   Widget _buildAcademyCard(Academy academy) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final gradients = [
+      AppTheme.gradientBlue,
+      AppTheme.gradientTeal,
+      AppTheme.gradientPurple,
+      AppTheme.gradientOrange,
+      AppTheme.gradientGreen,
+      AppTheme.gradientPink,
+    ];
+    final gradient = gradients[academy.hashCode % gradients.length];
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: isDarkMode ? AppTheme.darkCard : AppTheme.lightCard,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppTheme.mediumShadow,
+        border: Border.all(
+          color: isDarkMode
+              ? AppTheme.darkBorder.withOpacity(0.3)
+              : AppTheme.lightBorder.withOpacity(0.5),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,28 +444,35 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
 
                 // Rating badge
                 Positioned(
-                  top: 12,
-                  right: 12,
+                  top: 16,
+                  right: 16,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: 12,
+                      vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.black.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 16),
+                        const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           academy.rating.toStringAsFixed(1),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
                       ],
@@ -350,8 +490,15 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
                         left: 12,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: PopupMenuButton<String>(
                             icon: const Icon(Icons.more_vert, color: Colors.white),
@@ -397,65 +544,38 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
 
           // Academy details
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Academy name
-                Text(
-                  academy.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                const SizedBox(height: 8),
-
-                // Description
-                Text(
-                  academy.description,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                const SizedBox(height: 12),
-
-                // Location and age group
+                // Academy name with gradient accent
                 Row(
                   children: [
-                    Icon(
-                      Icons.location_on_outlined,
-                      size: 16,
-                      color: Colors.grey.shade600,
+                    Container(
+                      width: 4,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: gradient,
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        academy.location,
+                        academy.name,
                         style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode
+                              ? AppTheme.darkTextPrimary
+                              : AppTheme.lightTextPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(
-                      Icons.people_outline,
-                      size: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      academy.ageGroup,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -463,63 +583,219 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
 
                 const SizedBox(height: 12),
 
-                // Sports offered
+                // Description
+                Text(
+                  academy.description,
+                  style: TextStyle(
+                    color: isDarkMode
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Location and age group with improved styling
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? AppTheme.darkSurface.withOpacity(0.5)
+                        : AppTheme.lightSecondary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.location_on_rounded,
+                          size: 16,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          academy.location,
+                          style: TextStyle(
+                            color: isDarkMode
+                                ? AppTheme.darkTextSecondary
+                                : AppTheme.lightTextSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryTeal.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.people_rounded,
+                          size: 16,
+                          color: AppTheme.secondaryTeal,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        academy.ageGroup,
+                        style: TextStyle(
+                          color: isDarkMode
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Sports offered with gradient chips
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children:
-                      academy.sports.take(3).map((sport) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            sport,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: academy.sports.take(3).map((sport) {
+                    final chipGradient = gradients[(sport.hashCode) % gradients.length];
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: chipGradient.map((c) => c.withOpacity(0.1)).toList(),
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: chipGradient.first.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        sport,
+                        style: TextStyle(
+                          color: chipGradient.first,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
 
                 if (academy.sports.length > 3)
                   Padding(
-                    padding: const EdgeInsets.only(top: 6.0),
-                    child: Text(
-                      '+${academy.sports.length - 3} more',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: gradient.first.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '+${academy.sports.length - 3} more sports',
+                        style: TextStyle(
+                          color: gradient.first,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // Action buttons
+                // Action buttons with gradient styling
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _showContactInfo(academy),
-                        child: const Text('Contact'),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: gradient.first,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: OutlinedButton(
+                          onPressed: () => _showContactInfo(academy),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide.none,
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: gradient.first,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.phone, size: 16, color: gradient.first),
+                              const SizedBox(width: 6),
+                              const Text('Contact'),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _showAcademyDetails(academy),
-                        child: const Text('View Details'),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: gradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: gradient.first.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () => _showAcademyDetails(academy),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.visibility, size: 16),
+                              SizedBox(width: 6),
+                              Text('View Details'),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -537,9 +813,43 @@ class _AcademiesScreenState extends State<AcademiesScreen> {
     return Container(
       height: 160,
       width: double.infinity,
-      color: Colors.grey.shade300,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryBlue.withOpacity(0.1),
+            AppTheme.secondaryTeal.withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Center(
-        child: Icon(Icons.school, size: 64, color: Colors.grey.shade600),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.school_rounded,
+                size: 40,
+                color: AppTheme.primaryBlue,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Academy Image',
+              style: TextStyle(
+                color: AppTheme.primaryBlue.withOpacity(0.7),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

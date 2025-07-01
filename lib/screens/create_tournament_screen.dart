@@ -5,6 +5,7 @@ import '../models/tournament.dart';
 import '../services/stadium_service.dart';
 import '../services/tournament_service.dart';
 import '../auth_service.dart';
+import '../themes/app_theme.dart';
 
 class CreateTournamentScreen extends StatefulWidget {
   final Tournament? tournament;
@@ -238,7 +239,8 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: AppTheme.successGreen,
+        behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -248,7 +250,8 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: AppTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
       ),
     );
@@ -256,22 +259,23 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.grey[50],
+      backgroundColor: isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
       appBar: AppBar(
         title: Text(
           _isEditing ? 'Edit Tournament' : 'Create Tournament',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+        iconTheme: IconThemeData(
+          color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
         ),
       ),
       body: _isLoadingStadiums
@@ -283,44 +287,84 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
   }
 
   Widget _buildPermissionDeniedView() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.lock_outline,
-              size: 80,
-              color: Colors.orange,
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.warningYellow.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppTheme.warningYellow.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.lock_outline,
+                size: 48,
+                color: AppTheme.warningYellow,
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               'Access Restricted',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.orange,
+                color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Only stadium owners can create tournaments.\nPlease contact an administrator if you believe this is an error.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? AppTheme.darkSurface.withOpacity(0.5)
+                    : AppTheme.lightSecondary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Only stadium owners can create tournaments.\nPlease contact an administrator if you believe this is an error.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                ),
               ),
             ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            const SizedBox(height: 28),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: AppTheme.gradientOrange,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppTheme.mediumShadow,
               ),
-              child: const Text('Go Back'),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Go Back',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
           ],
         ),
@@ -341,48 +385,86 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
           children: [
             // Header Card
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    colorScheme.primary,
-                    colorScheme.primary.withOpacity(0.8),
-                  ],
+                gradient: const LinearGradient(
+                  colors: AppTheme.gradientPurple,
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.3),
+                    color: AppTheme.accentPurple.withOpacity(0.3),
                     blurRadius: 20,
-                    offset: const Offset(0, 10),
+                    offset: const Offset(0, 8),
+                    spreadRadius: 0,
                   ),
                 ],
               ),
-              child: Column(
+              child: Stack(
                 children: [
-                  Icon(
-                    Icons.emoji_events,
-                    size: 60,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _isEditing ? 'Edit Tournament' : 'Create New Tournament',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  // Background pattern
+                  Positioned(
+                    right: -30,
+                    top: -30,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isEditing ? 'Update your tournament details' : 'Set up your tournament details',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
+                  Positioned(
+                    left: -40,
+                    bottom: -40,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
+                      ),
                     ),
+                  ),
+                  // Content
+                  Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.emoji_events,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _isEditing ? 'Edit Tournament' : 'Create New Tournament',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _isEditing ? 'Update your tournament details' : 'Set up your tournament details',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -511,17 +593,33 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
             const SizedBox(height: 40),
 
             // Create Button
-            SizedBox(
+            Container(
               height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: AppTheme.gradientGreen,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.successGreen.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
               child: ElevatedButton(
                 onPressed: (_isLoading || _availableStadiums.isEmpty) ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
+                  backgroundColor: Colors.transparent,
                   foregroundColor: Colors.white,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 3,
                 ),
                 child: _isLoading
                     ? const SizedBox(
@@ -536,15 +634,15 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            _isEditing ? Icons.edit : Icons.add_circle_outline, 
-                            size: 24
+                            _isEditing ? Icons.edit : Icons.add, 
+                            size: 20
                           ),
                           const SizedBox(width: 8),
                           Text(
                             _isEditing ? 'Update Tournament' : 'Create Tournament',
                             style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -555,22 +653,29 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
             const SizedBox(height: 16),
 
             // Cancel Button
-            SizedBox(
+            Container(
               height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppTheme.errorRed,
+                  width: 1.5,
+                ),
+              ),
               child: OutlinedButton(
                 onPressed: _isLoading ? null : () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: colorScheme.primary),
+                  side: BorderSide.none,
+                  foregroundColor: AppTheme.errorRed,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Cancel',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.primary,
                   ),
                 ),
               ),
