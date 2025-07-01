@@ -93,14 +93,12 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
     _emailController.text = academy.contact['email'] ?? '';
     
     // Set current owner for display in edit mode
-    if (academy.owner != null) {
-      _currentOwner = {
-        '_id': academy.owner!['_id'],
-        'username': academy.owner!['username'],
-        'email': academy.owner!['email'],
-      };
+    _currentOwner = {
+      '_id': academy.owner!['_id'],
+      'username': academy.owner!['username'],
+      'email': academy.owner!['email'],
+    };
     }
-  }
 
   @override
   void dispose() {
@@ -224,7 +222,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: colorScheme.onBackground,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -255,7 +253,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
       maxLines: maxLines,
       style: TextStyle(
         fontSize: 16,
-        color: colorScheme.onBackground,
+        color: colorScheme.onSurface,
       ),
       decoration: InputDecoration(
         labelText: label,
@@ -371,7 +369,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
                 Text(
                   _currentOwner?['username'] ?? 'Unknown Owner',
                   style: TextStyle(
-                    color: colorScheme.onBackground,
+                    color: colorScheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -524,7 +522,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
               ),
             ),
           );
-        }).toList(),
+        }),
       ],
       onChanged: (String? value) {
         if (value == '') return;
@@ -552,7 +550,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: colorScheme.onBackground,
+        foregroundColor: colorScheme.onSurface,
       ),
       body: Form(
         key: _formKey,

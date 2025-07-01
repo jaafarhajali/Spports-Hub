@@ -267,7 +267,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: colorScheme.onBackground,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -302,7 +302,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
       onTap: onTap,
       style: TextStyle(
         fontSize: 16,
-        color: colorScheme.onBackground,
+        color: colorScheme.onSurface,
       ),
       decoration: InputDecoration(
         labelText: label,
@@ -418,7 +418,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
                 Text(
                   _currentOwner?['username'] ?? 'Unknown Owner',
                   style: TextStyle(
-                    color: colorScheme.onBackground,
+                    color: colorScheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -571,7 +571,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
               ),
             ),
           );
-        }).toList(),
+        }),
       ],
       onChanged: (String? value) {
         if (value == '') return;
@@ -599,7 +599,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: colorScheme.onBackground,
+        foregroundColor: colorScheme.onSurface,
       ),
       body: Form(
         key: _formKey,
