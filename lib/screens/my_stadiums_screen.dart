@@ -21,6 +21,7 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   bool _isAdmin = false;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -31,8 +32,10 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
   Future<void> _checkAdminStatusAndLoadStadiums() async {
     try {
       final userRole = await _authService.getUserRole();
+      final userId = await _authService.getUserId();
       setState(() {
         _isAdmin = userRole == 'admin';
+        _currentUserId = userId;
       });
       _loadMyStadiums();
     } catch (e) {
@@ -130,6 +133,12 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
     }
   }
 
+  bool _canEditStadium(Stadium stadium) {
+    if (_isAdmin) return true;
+    if (_currentUserId != null && stadium.ownerId == _currentUserId) return true;
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -187,7 +196,7 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No stadiums yet',
+                              _isAdmin ? 'No stadiums in system' : 'No stadiums yet',
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey.shade600,
@@ -196,7 +205,7 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Create your first stadium to get started',
+                              _isAdmin ? 'No stadiums have been created yet' : 'Create your first stadium to get started',
                               style: TextStyle(color: Colors.grey.shade500),
                             ),
                             const SizedBox(height: 24),
@@ -259,41 +268,42 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
                       )
                     : _buildPlaceholderImage(stadium),
 
-                // Action buttons overlay
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(8),
+                // Action buttons overlay - only show for admin or stadium owner
+                if (_canEditStadium(stadium))
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () => _navigateToEditStadium(stadium),
+                            icon: const Icon(Icons.edit, color: Colors.white),
+                            iconSize: 20,
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          ),
                         ),
-                        child: IconButton(
-                          onPressed: () => _navigateToEditStadium(stadium),
-                          icon: const Icon(Icons.edit, color: Colors.white),
-                          iconSize: 20,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () => _deleteStadium(stadium),
+                            icon: const Icon(Icons.delete, color: Colors.white),
+                            iconSize: 20,
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: IconButton(
-                          onPressed: () => _deleteStadium(stadium),
-                          icon: const Icon(Icons.delete, color: Colors.white),
-                          iconSize: 20,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
                 // Price badge
                 Positioned(
@@ -438,30 +448,33 @@ class _MyStadiumsScreenState extends State<MyStadiumsScreen> {
                 // Action buttons
                 Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _navigateToEditStadium(stadium),
-                            icon: const Icon(Icons.edit, size: 18),
-                            label: const Text('Edit'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _deleteStadium(stadium),
-                            icon: const Icon(Icons.delete, size: 18),
-                            label: const Text('Delete'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
+                    // Edit/Delete buttons - only show for admin or stadium owner
+                    if (_canEditStadium(stadium))
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _navigateToEditStadium(stadium),
+                              icon: const Icon(Icons.edit, size: 18),
+                              label: const Text('Edit'),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _deleteStadium(stadium),
+                              icon: const Icon(Icons.delete, size: 18),
+                              label: const Text('Delete'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (_canEditStadium(stadium))
+                      const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(

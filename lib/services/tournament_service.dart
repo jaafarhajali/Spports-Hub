@@ -206,8 +206,10 @@ class TournamentService {
         throw Exception('Authentication required');
       }
 
-      // Tournaments are accessible to all authenticated users
-      // Removed stadium owner restriction
+      // Only stadium owners can access their tournaments
+      if (userRole != 'stadiumOwner') {
+        throw Exception('Only stadium owners can view their tournaments');
+      }
 
       print('Fetching my tournaments');
 
@@ -264,8 +266,10 @@ class TournamentService {
         throw Exception('Authentication required');
       }
 
-      // Tournaments can be created by any authenticated user
-      // Removed stadium owner restriction
+      // Only stadium owners can create tournaments (not admins)
+      if (userRole != 'stadiumOwner') {
+        throw Exception('Only stadium owners can create tournaments');
+      }
 
       print('Creating tournament: $name at stadium: $stadiumId');
 
@@ -413,11 +417,11 @@ class TournamentService {
   // UTILITY METHODS
   // ============================================================================
 
-  /// Check if user can create tournaments (any authenticated user)
+  /// Check if user can create tournaments (only stadium owners, not admins)
   Future<bool> canCreateTournaments() async {
     try {
-      final token = await _authService.getToken();
-      return token != null;
+      final userRole = await _authService.getUserRole();
+      return userRole == 'stadiumOwner';
     } catch (e) {
       return false;
     }
@@ -428,6 +432,28 @@ class TournamentService {
     try {
       final userRole = await _authService.getUserRole();
       return userRole == 'teamLeader' || userRole == 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Check if user can edit/delete a specific tournament (only creator who must be stadium owner)
+  Future<bool> canEditTournament(Tournament tournament) async {
+    try {
+      final userRole = await _authService.getUserRole();
+      final userId = await _authService.getUserId();
+      
+      // Only stadium owners can edit tournaments
+      if (userRole != 'stadiumOwner') {
+        return false;
+      }
+      
+      // Stadium owner can only edit their own tournaments
+      if (tournament.createdBy == userId) {
+        return true;
+      }
+      
+      return false;
     } catch (e) {
       return false;
     }

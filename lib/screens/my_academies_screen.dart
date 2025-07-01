@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/academy.dart';
 import '../services/academy_service.dart';
 import '../services/app_config.dart';
+import '../auth_service.dart';
 import 'academy_form_screen.dart';
 
 class MyAcademiesScreen extends StatefulWidget {
@@ -13,14 +14,32 @@ class MyAcademiesScreen extends StatefulWidget {
 
 class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
   final AcademyService _academyService = AcademyService();
+  final AuthService _authService = AuthService();
   List<Academy> _academies = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _isAdmin = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
-    _loadMyAcademies();
+    _checkAdminStatusAndLoadAcademies();
+  }
+
+  Future<void> _checkAdminStatusAndLoadAcademies() async {
+    try {
+      final userRole = await _authService.getUserRole();
+      final userId = await _authService.getUserId();
+      setState(() {
+        _isAdmin = userRole == 'admin';
+        _currentUserId = userId;
+      });
+      _loadMyAcademies();
+    } catch (e) {
+      print('Error checking admin status: $e');
+      _loadMyAcademies();
+    }
   }
 
   Future<void> _loadMyAcademies() async {
@@ -30,7 +49,15 @@ class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
     });
 
     try {
-      final academies = await _academyService.getMyAcademies();
+      List<Academy> academies;
+      if (_isAdmin) {
+        // Admin can see all academies in the system
+        academies = await _academyService.getAllAcademiesAdmin();
+      } else {
+        // Regular users see only their own academies
+        academies = await _academyService.getMyAcademies();
+      }
+      
       setState(() {
         _academies = academies;
         _isLoading = false;
@@ -104,13 +131,27 @@ class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
     }
   }
 
+  bool _canEditAcademy(Academy academy) {
+    // Admin can edit any academy
+    if (_isAdmin) return true;
+    
+    // Academy owners can edit their own academies
+    // Since we're using getMyAcademies() for academy owners, 
+    // all academies shown should be editable by them
+    if (!_isAdmin) {
+      return true; // Academy owners can edit all academies shown in their "My Academies" view
+    }
+    
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Academies'),
+        title: Text(_isAdmin ? 'All Academies (Admin)' : 'My Academies'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
@@ -161,7 +202,7 @@ class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No academies yet',
+                              _isAdmin ? 'No academies in system' : 'No academies yet',
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey.shade600,
@@ -170,7 +211,7 @@ class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Create your first academy to get started',
+                              _isAdmin ? 'No academies have been created yet' : 'Create your first academy to get started',
                               style: TextStyle(color: Colors.grey.shade500),
                             ),
                             const SizedBox(height: 24),
@@ -193,11 +234,6 @@ class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
                           );
                         },
                       ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToCreateAcademy,
-        heroTag: "academies_fab",
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -233,41 +269,42 @@ class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
                       )
                     : _buildPlaceholderImage(),
 
-                // Action buttons overlay
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(8),
+                // Action buttons overlay - only show for admin or academy owner
+                if (_canEditAcademy(academy))
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () => _navigateToEditAcademy(academy),
+                            icon: const Icon(Icons.edit, color: Colors.white),
+                            iconSize: 20,
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          ),
                         ),
-                        child: IconButton(
-                          onPressed: () => _navigateToEditAcademy(academy),
-                          icon: const Icon(Icons.edit, color: Colors.white),
-                          iconSize: 20,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () => _deleteAcademy(academy),
+                            icon: const Icon(Icons.delete, color: Colors.white),
+                            iconSize: 20,
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: IconButton(
-                          onPressed: () => _deleteAcademy(academy),
-                          icon: const Icon(Icons.delete, color: Colors.white),
-                          iconSize: 20,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
                 // Rating badge
                 Positioned(
@@ -448,30 +485,31 @@ class _MyAcademiesScreenState extends State<MyAcademiesScreen> {
 
                 const SizedBox(height: 16),
 
-                // Action buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _navigateToEditAcademy(academy),
-                        icon: const Icon(Icons.edit, size: 18),
-                        label: const Text('Edit'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _deleteAcademy(academy),
-                        icon: const Icon(Icons.delete, size: 18),
-                        label: const Text('Delete'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
+                // Action buttons - only show for admin or academy owner
+                if (_canEditAcademy(academy))
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _navigateToEditAcademy(academy),
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text('Edit'),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _deleteAcademy(academy),
+                          icon: const Icon(Icons.delete, size: 18),
+                          label: const Text('Delete'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

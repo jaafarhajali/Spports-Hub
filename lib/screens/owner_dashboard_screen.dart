@@ -86,12 +86,20 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
       // Load counts based on user role
       if (_userRole == 'stadiumOwner' || _userRole == 'admin') {
         final stadiums = await _stadiumService.getMyStadiums();
-        final tournaments = await _tournamentService.getMyTournaments();
         if (mounted) {
           setState(() {
             _stadiumCount = stadiums.length;
-            _tournamentCount = tournaments.length;
           });
+        }
+
+        // Only stadium owners can access tournaments (not admin)
+        if (_userRole == 'stadiumOwner') {
+          final tournaments = await _tournamentService.getMyTournaments();
+          if (mounted) {
+            setState(() {
+              _tournamentCount = tournaments.length;
+            });
+          }
         }
       }
 
@@ -326,9 +334,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
           // Stats cards
           // Build stats cards based on user role
           if (_userRole.isNotEmpty) ...[
-            Row(
-              children: [
-                if (_userRole == 'stadiumOwner' || _userRole == 'admin')
+            // Stadium Owner layout (stadiums + tournaments in 2x1 grid)
+            if (_userRole == 'stadiumOwner') ...[
+              Row(
+                children: [
                   Expanded(
                     child: _buildStatCard(
                       'Stadiums',
@@ -337,26 +346,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
                       Colors.blue,
                     ),
                   ),
-                if ((_userRole == 'stadiumOwner' || _userRole == 'admin') &&
-                    (_userRole == 'academyOwner'))
                   const SizedBox(width: 12),
-                if (_userRole == 'academyOwner' || _userRole == 'admin')
-                  Expanded(
-                    child: _buildStatCard(
-                      'Academies',
-                      _academyCount.toString(),
-                      Icons.school,
-                      Colors.green,
-                    ),
-                  ),
-              ],
-            ),
-            
-            // Tournament stats for stadium owners
-            if (_userRole == 'stadiumOwner' || _userRole == 'admin') ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
                   Expanded(
                     child: _buildStatCard(
                       'Tournaments',
@@ -365,7 +355,39 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
                       Colors.orange,
                     ),
                   ),
-                  const Expanded(child: SizedBox()), // Empty space for balance
+                ],
+              ),
+            ]
+            // Academy Owner layout (full width academy card)
+            else if (_userRole == 'academyOwner') ...[
+              _buildStatCard(
+                'Academies',
+                _academyCount.toString(),
+                Icons.school,
+                Colors.green,
+              ),
+            ]
+            // Admin layout (stadiums + academies)
+            else if (_userRole == 'admin') ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Stadiums',
+                      _stadiumCount.toString(),
+                      Icons.stadium,
+                      Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      'Academies',
+                      _academyCount.toString(),
+                      Icons.school,
+                      Colors.green,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -393,9 +415,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
 
           // Create buttons based on user role
           if (_userRole.isNotEmpty) ...[
-            Row(
-              children: [
-                if (_userRole == 'stadiumOwner' || _userRole == 'admin')
+            // Stadium Owner layout (stadium + tournament actions in 2x1 grid)
+            if (_userRole == 'stadiumOwner') ...[
+              Row(
+                children: [
                   Expanded(
                     child: _buildQuickActionCard(
                       'Create Stadium',
@@ -404,26 +427,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
                       () => _navigateToCreateStadium(),
                     ),
                   ),
-                if ((_userRole == 'stadiumOwner' || _userRole == 'admin') &&
-                    (_userRole == 'academyOwner'))
                   const SizedBox(width: 12),
-                if (_userRole == 'academyOwner' || _userRole == 'admin')
-                  Expanded(
-                    child: _buildQuickActionCard(
-                      'Create Academy',
-                      Icons.add,
-                      Colors.green,
-                      () => _navigateToCreateAcademy(),
-                    ),
-                  ),
-              ],
-            ),
-            
-            // Tournament quick action for stadium owners
-            if (_userRole == 'stadiumOwner' || _userRole == 'admin') ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
                   Expanded(
                     child: _buildQuickActionCard(
                       'Create Tournament',
@@ -432,7 +436,39 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
                       () => _navigateToCreateTournament(),
                     ),
                   ),
-                  const Expanded(child: SizedBox()), // Empty space for balance
+                ],
+              ),
+            ]
+            // Academy Owner layout (full width academy action)
+            else if (_userRole == 'academyOwner') ...[
+              _buildQuickActionCard(
+                'Create Academy',
+                Icons.add,
+                Colors.green,
+                () => _navigateToCreateAcademy(),
+              ),
+            ]
+            // Admin layout (stadium + academy actions)
+            else if (_userRole == 'admin') ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      'Create Stadium',
+                      Icons.add_business,
+                      Colors.blue,
+                      () => _navigateToCreateStadium(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      'Create Academy',
+                      Icons.add,
+                      Colors.green,
+                      () => _navigateToCreateAcademy(),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -490,8 +526,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen>
 
           const SizedBox(height: 12),
 
-          // Tournament management for stadium owners
-          if (_userRole == 'stadiumOwner' || _userRole == 'admin')
+          // Tournament management for stadium owners only (not admin)
+          if (_userRole == 'stadiumOwner')
             _buildManagementCard(
               'My Tournaments',
               'View, edit, and delete your tournaments',

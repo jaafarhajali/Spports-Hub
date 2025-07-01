@@ -354,9 +354,10 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
     
     return DropdownButtonFormField<String>(
       value: _selectedOwnerId,
+      isExpanded: true, // This helps prevent overflow
       decoration: InputDecoration(
         labelText: 'Academy Owner',
-        hintText: 'Select owner or leave blank to assign to yourself',
+        hintText: 'Select owner (optional)',
         prefixIcon: Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(8),
@@ -422,22 +423,27 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
         ..._academyOwners.map((owner) {
           return DropdownMenuItem<String>(
             value: owner['_id']?.toString(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  owner['username'] ?? 'Unknown',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  owner['email'] ?? '',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    owner['username'] ?? 'Unknown',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                  Text(
+                    owner['email'] ?? '',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }).toList(),
