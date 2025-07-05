@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:app_links/app_links.dart';
 import 'themes/theme_controller.dart';
 import 'themes/app_theme.dart';
 import 'screens/sports_hub.dart';
@@ -24,8 +25,47 @@ void main() {
   );
 }
 
-class SportsHubApp extends StatelessWidget {
+class SportsHubApp extends StatefulWidget {
   const SportsHubApp({super.key});
+
+  @override
+  State<SportsHubApp> createState() => _SportsHubAppState();
+}
+
+class _SportsHubAppState extends State<SportsHubApp> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  late AppLinks _appLinks;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+    
+    // Listen to incoming links when app is running
+    _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+    
+    // Handle app launched from deep link
+    final initialUri = await _appLinks.getInitialAppLink();
+    if (initialUri != null) {
+      _handleDeepLink(initialUri);
+    }
+  }
+
+  void _handleDeepLink(Uri uri) {
+    print('Deep link received: $uri');
+    if (uri.scheme == 'sportshub' && uri.host == 'reset_password') {
+      final token = uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : '';
+      if (token.isNotEmpty) {
+        navigatorKey.currentState?.pushNamed('/reset_password/$token');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +73,7 @@ class SportsHubApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Sports Hub',
+      navigatorKey: navigatorKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeController.themeMode,
