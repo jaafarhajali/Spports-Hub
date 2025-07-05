@@ -212,6 +212,51 @@ class AuthService {
     await prefs.remove('user_image');
   }
 
+  // Forgot password
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/forgotPassword'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      return _handleResponse(response);
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // Reset password
+  Future<Map<String, dynamic>> resetPassword(String token, String password, String passwordConfirm) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/auth/resetPassword/$token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'password': password,
+          'passwordConfirm': passwordConfirm,
+        }),
+      );
+
+      final result = _handleResponse(response);
+
+      // Store token and user data if reset successful
+      if (result['success'] == true && result.containsKey('token')) {
+        await storeToken(result['token']);
+        
+        // Store user data if available
+        if (result.containsKey('user')) {
+          await storeUserData(result['user']);
+        }
+      }
+
+      return result;
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   // Process HTTP response
   Map<String, dynamic> _handleResponse(http.Response response) {
     try {

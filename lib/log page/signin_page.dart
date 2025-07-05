@@ -265,7 +265,7 @@ class _SignInPageState extends State<SignInPage> {
                             ),
                             TextButton(
                               onPressed: () {
-                                // Forgot password logic
+                                Navigator.pushNamed(context, '/forgot_password');
                               },
                               child: Text(
                                 'Forgot Password?',

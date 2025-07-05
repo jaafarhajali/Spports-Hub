@@ -10,6 +10,8 @@ import 'screens/create_team_screen.dart';
 import 'screens/create_tournament_screen.dart';
 import 'screens/create_stadium_screen.dart';
 import 'screens/team_management_screen.dart';
+import 'screens/forgot_password_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'log page/signin_page.dart';
 import 'log page/signup_page.dart';
 
@@ -41,6 +43,7 @@ class SportsHubApp extends StatelessWidget {
         '/sports_hub': (context) => const SportsHub(),
         '/signin': (context) => const SignInPage(),
         '/signup': (context) => const SignUpPage(),
+        '/forgot_password': (context) => const ForgotPasswordScreen(),
         '/stadiums': (context) => const SportsHub(initialIndex: 3), // Navigate to stadiums tab
         '/academies': (context) => const SportsHub(initialIndex: 1), // Navigate to academies tab
         '/tournaments': (context) => const SportsHub(initialIndex: 2), // Navigate to tournaments tab
@@ -52,6 +55,17 @@ class SportsHubApp extends StatelessWidget {
         '/create_tournament': (context) => const CreateTournamentScreen(),
         '/create_stadium': (context) => const CreateStadiumScreen(),
         '/team_management': (context) => const TeamManagementScreen(),
+      },
+
+      // Handle dynamic routes for password reset
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith('/reset_password/')) {
+          final token = settings.name!.split('/')[2];
+          return MaterialPageRoute(
+            builder: (context) => ResetPasswordScreen(token: token),
+          );
+        }
+        return null;
       },
       debugShowCheckedModeBanner: false,
     );
