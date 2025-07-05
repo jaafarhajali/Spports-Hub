@@ -1,4 +1,5 @@
 // lib/models/stadium.dart
+import 'package:flutter/material.dart';
 class SlotModel {
   final String startTime;
   final String endTime;
@@ -105,6 +106,11 @@ class Stadium {
   // Helper method to get available time slots for a specific date
   List<SlotModel> getAvailableSlots(DateTime date) {
     final dateOnly = DateTime(date.year, date.month, date.day);
+    final now = DateTime.now();
+    final isToday = dateOnly.year == now.year && 
+                   dateOnly.month == now.month && 
+                   dateOnly.day == now.day;
+    
     final calendarEntry = calendar.firstWhere(
       (entry) =>
           DateTime(entry.date.year, entry.date.month, entry.date.day) ==
@@ -112,13 +118,45 @@ class Stadium {
       orElse: () => CalendarEntry(date: dateOnly, slots: []),
     );
 
-    // If calendar entry exists, return its available slots
+    List<SlotModel> availableSlots;
+    
+    // If calendar entry exists, get its available slots
     if (calendarEntry.slots.isNotEmpty) {
-      return calendarEntry.slots.where((slot) => !slot.isBooked).toList();
+      availableSlots = calendarEntry.slots.where((slot) => !slot.isBooked).toList();
+    } else {
+      // Fallback: generate time slots from working hours if calendar is empty
+      availableSlots = _generateTimeSlotsFromWorkingHours();
     }
-
-    // Fallback: generate time slots from working hours if calendar is empty
-    return _generateTimeSlotsFromWorkingHours();
+    
+    // Filter out past time slots for today
+    if (isToday) {
+      final currentTime = TimeOfDay.fromDateTime(now);
+      availableSlots = availableSlots.where((slot) {
+        final slotTime = _parseTimeOfDay(slot.startTime);
+        if (slotTime == null) return true; // Keep slot if parsing fails
+        
+        // Compare hours and minutes
+        return slotTime.hour > currentTime.hour || 
+               (slotTime.hour == currentTime.hour && slotTime.minute > currentTime.minute);
+      }).toList();
+    }
+    
+    return availableSlots;
+  }
+  
+  // Helper method to parse time string to TimeOfDay
+  TimeOfDay? _parseTimeOfDay(String timeString) {
+    try {
+      final parts = timeString.split(':');
+      if (parts.length >= 2) {
+        final hour = int.parse(parts[0]);
+        final minute = int.parse(parts[1]);
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    } catch (e) {
+      print('Error parsing time: $timeString - $e');
+    }
+    return null;
   }
 
   // Helper method to get all time slots for a specific date (both available and unavailable)

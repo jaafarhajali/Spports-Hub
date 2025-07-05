@@ -94,9 +94,9 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
     
     // Set current owner for display in edit mode
     _currentOwner = {
-      '_id': academy.owner!['_id'],
-      'username': academy.owner!['username'],
-      'email': academy.owner!['email'],
+      '_id': academy.owner['_id'],
+      'username': academy.owner['username'],
+      'email': academy.owner['email'],
     };
     }
 
