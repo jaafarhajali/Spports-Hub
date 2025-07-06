@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/team.dart';
+import '../utils/validation_utils.dart';
 
 class EditTeamScreen extends StatefulWidget {
   final Team team;
@@ -189,18 +190,12 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
                         filled: true,
                         fillColor: isDarkMode ? Colors.grey[700] : Colors.grey[50],
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a team name';
-                        }
-                        if (value.trim().length < 3) {
-                          return 'Team name must be at least 3 characters';
-                        }
-                        if (value.trim().length > 30) {
-                          return 'Team name must be less than 30 characters';
-                        }
-                        return null;
-                      },
+                      validator: (value) => ValidationUtils.validateLength(
+                        value?.trim(),
+                        'Team name',
+                        minLength: 3,
+                        maxLength: 30,
+                      ),
                       textCapitalization: TextCapitalization.words,
                     ),
 

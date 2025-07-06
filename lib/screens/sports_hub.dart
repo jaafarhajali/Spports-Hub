@@ -126,6 +126,7 @@ class _SportsHubState extends State<SportsHub>
     try {
       final userProfile = await _userService.getUserProfile();
       final userRole = await _authService.getUserRole();
+      print('Loading user data - Role: $userRole');
       if (userProfile != null) {
         final profileImageUrl = _userService.getProfilePhotoUrl(
           userProfile['profilePhoto'],
@@ -136,6 +137,7 @@ class _SportsHubState extends State<SportsHub>
           _userImage = profileImageUrl ?? '';
           _userRole = userRole ?? '';
         });
+        print('Updated user role in state: $_userRole');
       }
     } catch (e) {
       print('Error loading user data: $e');
@@ -607,21 +609,58 @@ class _SportsHubState extends State<SportsHub>
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: Colors.white,
-                      backgroundImage:
-                          _userImage.isNotEmpty
-                              ? NetworkImage(_userImage)
-                              : null,
-                      child:
-                          _userImage.isEmpty
-                              ? Text(
-                                _getInitials(_userName),
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.primary.withAlpha(179),
-                                ),
-                              )
-                              : null,
+                      child: _userImage.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                _userImage,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: Colors.white,
+                                    child: Center(
+                                      child: Text(
+                                        _getInitials(_userName),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: Colors.white,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        strokeWidth: 2,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : Text(
+                              _getInitials(_userName),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -761,13 +800,36 @@ class _SportsHubState extends State<SportsHub>
             MaterialPageRoute(
               builder: (context) => const TeamManagementScreen(),
             ),
-          );
+          ).then((result) async {
+            // Refresh user data if team was modified (deleted/left)
+            if (result == true) {
+              // Add a small delay to ensure token is saved before refreshing
+              await Future.delayed(const Duration(milliseconds: 500));
+              _loadUserData(); // Refresh user role in case it changed
+            }
+          });
         } else if (title == 'Create Team') {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const CreateTeamScreen(),
             ),
-          );
+          ).then((result) async {
+            // Refresh team data if team was created successfully
+            if (result == true) {
+              // Add a small delay to ensure token is saved before refreshing
+              await Future.delayed(const Duration(milliseconds: 500));
+              _loadUserData(); // Refresh user role in case it changed
+            }
+          });
+        } else if (title == 'Notifications') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const NotificationsScreen(),
+            ),
+          ).then((_) {
+            // Refresh notification count when returning from notifications screen
+            _loadNotificationCount();
+          });
         } else if (title == 'Owner Dashboard') {
           Navigator.of(context).push(
             MaterialPageRoute(

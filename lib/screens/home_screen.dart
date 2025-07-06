@@ -36,11 +36,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _initAnimations() {
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
@@ -56,14 +56,29 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _loadData() async {
+    // Start animations immediately, don't wait for data
+    _startAnimations();
+    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final stadiums = await _stadiumService.getStadiums();
-      final academies = await _academyService.getAcademies();
+      // Load data asynchronously without blocking UI
+      final results = await Future.wait([
+        _stadiumService.getStadiums().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => <Stadium>[],
+        ),
+        _academyService.getAcademies().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => <Academy>[],
+        ),
+      ]);
+
+      final stadiums = results[0] as List<Stadium>;
+      final academies = results[1] as List<Academy>;
 
       setState(() {
         _featuredStadiums = stadiums.take(3).toList();
@@ -71,11 +86,16 @@ class _HomeScreenState extends State<HomeScreen>
         _isLoading = false;
       });
 
-      _startAnimations();
     } catch (e) {
+      // Try mock data as fallback
       try {
-        final mockStadiums = await _stadiumService.getMockStadiums();
-        final mockAcademies = await _academyService.getMockAcademies();
+        final results = await Future.wait([
+          _stadiumService.getMockStadiums(),
+          _academyService.getMockAcademies(),
+        ]);
+
+        final mockStadiums = results[0] as List<Stadium>;
+        final mockAcademies = results[1] as List<Academy>;
 
         setState(() {
           _featuredStadiums = mockStadiums.take(3).toList();
@@ -84,7 +104,6 @@ class _HomeScreenState extends State<HomeScreen>
           _errorMessage = 'Using demo data';
         });
 
-        _startAnimations();
       } catch (mockError) {
         setState(() {
           _isLoading = false;
@@ -96,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _startAnimations() {
     _fadeController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
       _slideController.forward();
     });
   }
@@ -219,9 +238,9 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     return Container(
-      constraints: const BoxConstraints(
-        minHeight: 180,
-        maxHeight: 220,
+      constraints: BoxConstraints(
+        minHeight: isSmallScreen ? 160 : 180,
+        maxHeight: isSmallScreen ? 200 : 240,
       ),
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
@@ -280,143 +299,160 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           
-          // Main content
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with icon and greeting
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+          // Main content - Use Positioned to fit within container bounds
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 12 : 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Header with icon and greeting
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          greetingIcon,
+                          color: Colors.white,
+                          size: isSmallScreen ? 20 : 24,
+                        ),
                       ),
-                      child: Icon(
-                        greetingIcon,
-                        color: Colors.white,
-                        size: 24,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              greeting,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: isSmallScreen ? 18 : 26,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              subtitle,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: isSmallScreen ? 10 : 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          greeting,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: isSmallScreen ? 22 : 28,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
+                    ],
+                  ),
+                
+                  // Action buttons - More compact layout
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/stadiums');
+                          },
+                          icon: Icon(Icons.stadium, size: isSmallScreen ? 14 : 16),
+                          label: Text(
+                            'Book Stadium',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: isSmallScreen ? 10 : 13,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: gradientColors[0],
+                            elevation: 0,
+                            padding: EdgeInsets.symmetric(
+                              vertical: isSmallScreen ? 6 : 10,
+                              horizontal: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                         ),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: isSmallScreen ? 12 : 14,
-                            fontWeight: FontWeight.w500,
+                      ),
+                      SizedBox(height: isSmallScreen ? 4 : 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/academies');
+                              },
+                              icon: const Icon(Icons.school, color: Colors.white),
+                              iconSize: isSmallScreen ? 14 : 18,
+                              padding: EdgeInsets.all(isSmallScreen ? 4 : 6),
+                              constraints: BoxConstraints(
+                                minWidth: isSmallScreen ? 32 : 36,
+                                minHeight: isSmallScreen ? 32 : 36,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                
-                const Spacer(),
-                
-                // Action buttons
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
+                          const SizedBox(width: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/bookings');
+                              },
+                              icon: const Icon(Icons.bookmark_outline, color: Colors.white),
+                              iconSize: isSmallScreen ? 14 : 18,
+                              padding: EdgeInsets.all(isSmallScreen ? 4 : 6),
+                              constraints: BoxConstraints(
+                                minWidth: isSmallScreen ? 32 : 36,
+                                minHeight: isSmallScreen ? 32 : 36,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/stadiums');
-                        },
-                        icon: const Icon(Icons.stadium, size: 18),
-                        label: Text(
-                          'Book Stadium',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: isSmallScreen ? 12 : 14,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: gradientColors[0],
-                          elevation: 0,
-                          padding: EdgeInsets.symmetric(
-                            vertical: isSmallScreen ? 10 : 14,
-                            horizontal: 16,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/academies');
-                            },
-                            icon: const Icon(Icons.school, color: Colors.white),
-                            iconSize: isSmallScreen ? 20 : 24,
-                            padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/bookings');
-                            },
-                            icon: const Icon(Icons.bookmark_outline, color: Colors.white),
-                            iconSize: isSmallScreen ? 20 : 24,
-                            padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+
       ),
     );
   }

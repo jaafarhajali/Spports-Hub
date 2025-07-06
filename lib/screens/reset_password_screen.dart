@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../auth_service.dart';
 import '../widgets/theme_toggle_button.dart';
+import '../utils/validation_utils.dart';
+import '../widgets/password_strength_indicator.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String token;
@@ -19,6 +21,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String _passwordStrength = '';
 
   @override
   void dispose() {
@@ -140,7 +143,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 
                 // Subtitle
                 Text(
-                  'Enter your new password below. Make sure it\'s at least 8 characters long and secure.',
+                  'Enter your new password below. Your password must meet all security requirements.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -161,6 +164,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
+                          onChanged: (value) {
+                            setState(() {
+                              _passwordStrength = value;
+                            });
+                          },
                           decoration: InputDecoration(
                             labelText: 'New Password',
                             prefixIcon: Icon(
@@ -208,15 +216,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your new password';
-                            }
-                            if (value.length < 8) {
-                              return 'Password must be at least 8 characters long';
-                            }
-                            return null;
-                          },
+                          validator: ValidationUtils.validatePassword,
+                        ),
+                        SizedBox(height: 16),
+                        
+                        // Password strength indicator
+                        PasswordStrengthIndicator(
+                          password: _passwordStrength,
+                          showLabel: true,
+                          showRequirements: true,
                         ),
                         SizedBox(height: 16),
                         
@@ -270,15 +278,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please confirm your new password';
-                            }
-                            if (value != _passwordController.text) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
+                          validator: (value) => ValidationUtils.validatePasswordConfirmation(
+                            value,
+                            _passwordController.text,
+                          ),
                         ),
                         SizedBox(height: 32),
                         

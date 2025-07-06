@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/theme_toggle_button.dart';
 import '../auth_service.dart'; // Import the auth service
+import '../utils/validation_utils.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -231,15 +232,7 @@ class _SignUpPageState extends State<SignUpPage> {
                               vertical: 16,
                             ),
                           ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a username';
-                      }
-                      if (value.length < 3) {
-                        return 'Username must be at least 3 characters';
-                      }
-                      return null;
-                    },
+                    validator: ValidationUtils.validateUsername,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
@@ -279,16 +272,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                     keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your phone number';
-                      }
-                      // Basic phone validation - can be improved
-                      if (value.length < 10) {
-                        return 'Please enter a valid phone number';
-                      }
-                      return null;
-                    },
+                    validator: ValidationUtils.validatePhone,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
@@ -327,19 +311,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                               keyboardType: TextInputType.emailAddress,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                // Basic email validation
-                                bool emailValid = RegExp(
-                                  r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-                                ).hasMatch(value);
-                                if (!emailValid) {
-                                  return 'Please enter a valid email';
-                                }
-                                return null;
-                              },
+                              validator: ValidationUtils.validateEmail,
                             ),
                         SizedBox(height: 16),
                         TextFormField(
@@ -392,23 +364,7 @@ class _SignUpPageState extends State<SignUpPage> {
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a password';
-                            }
-                            if (value.length < 8) {
-                              return 'Password must be at least 8 characters';
-                            }
-                            // Check for at least one uppercase letter, one lowercase letter, and one number
-                            bool hasUppercase = value.contains(RegExp(r'[A-Z]'));
-                            bool hasLowercase = value.contains(RegExp(r'[a-z]'));
-                            bool hasDigits = value.contains(RegExp(r'[0-9]'));
-
-                            if (!hasUppercase || !hasLowercase || !hasDigits) {
-                              return 'Password must contain uppercase, lowercase, and number';
-                            }
-                            return null;
-                          },
+                          validator: ValidationUtils.validatePassword,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
@@ -461,15 +417,10 @@ class _SignUpPageState extends State<SignUpPage> {
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please confirm your password';
-                            }
-                            if (value != _passwordController.text) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
+                          validator: (value) => ValidationUtils.validatePasswordConfirmation(
+                            value,
+                            _passwordController.text,
+                          ),
                         ),
                         SizedBox(height: 24),
                         Row(

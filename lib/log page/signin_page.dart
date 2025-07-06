@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/theme_toggle_button.dart';
 import '../auth_service.dart'; // Add this import
+import '../utils/validation_utils.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -170,7 +171,12 @@ class _SignInPageState extends State<SignInPage> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your email or username';
                             }
-                            return null;
+                            // Check if it looks like an email, if so validate email format
+                            if (value.contains('@')) {
+                              return ValidationUtils.validateEmail(value);
+                            }
+                            // Otherwise validate as username
+                            return ValidationUtils.validateUsername(value);
                           },
                         ),
                         SizedBox(height: 16),
@@ -224,12 +230,7 @@ class _SignInPageState extends State<SignInPage> {
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
-                            }
-                            return null;
-                          },
+                          validator: (value) => ValidationUtils.validateRequired(value, 'Password'),
                         ),
                         SizedBox(height: 16),
                         Row(

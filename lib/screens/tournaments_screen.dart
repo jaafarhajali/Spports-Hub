@@ -305,33 +305,35 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       );
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            isDarkMode ? Colors.grey.shade800 : Colors.white,
-            isDarkMode ? Colors.grey.shade900 : Colors.grey.shade50,
+    return GestureDetector(
+      onTap: () => _showTournamentDetails(tournament, primaryColor),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              isDarkMode ? Colors.grey.shade800 : Colors.white,
+              isDarkMode ? Colors.grey.shade900 : Colors.grey.shade50,
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: primaryColor.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+              spreadRadius: -4,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+              spreadRadius: -8,
+            ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-            spreadRadius: -4,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-            spreadRadius: -8,
-          ),
-        ],
-      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: Column(
@@ -647,7 +649,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: () => _showTournamentDetails(tournament, primaryColor),
                           icon: Icon(
                             Icons.info_outline,
                             size: 18,
@@ -716,6 +718,277 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
           ],
         ),
       ),
+    )
+    );
+  }
+
+  /// Shows detailed tournament information in a popup dialog
+  void _showTournamentDetails(Tournament tournament, Color primaryColor) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  isDarkMode ? Colors.grey.shade800 : Colors.white,
+                  isDarkMode ? Colors.grey.shade900 : Colors.grey.shade50,
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with tournament name and close button
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        primaryColor,
+                        primaryColor.withOpacity(0.8),
+                      ],
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tournament.name,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tournament Details',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Description
+                        _buildDetailSection(
+                          'Description',
+                          tournament.description,
+                          Icons.description,
+                          isDarkMode,
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Stadium info
+                        if (tournament.stadiumName != null)
+                          _buildDetailSection(
+                            'Stadium',
+                            tournament.stadiumName!,
+                            Icons.stadium,
+                            isDarkMode,
+                          ),
+                        const SizedBox(height: 16),
+                        
+                        // Tournament details grid
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDarkMode 
+                                ? Colors.grey.shade800.withOpacity(0.5)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildDetailItem(
+                                      'Max Teams',
+                                      '${tournament.maxTeams}',
+                                      Icons.groups,
+                                      isDarkMode,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildDetailItem(
+                                      'Current Teams',
+                                      '${tournament.teams.length}',
+                                      Icons.group,
+                                      isDarkMode,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildDetailItem(
+                                      'Entry Fee',
+                                      '${tournament.entryPricePerTeam.toStringAsFixed(0)} LBP',
+                                      Icons.attach_money,
+                                      isDarkMode,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildDetailItem(
+                                      'Status',
+                                      tournament.isRegistrationOpen ? 'Open' : 'Closed',
+                                      tournament.isRegistrationOpen ? Icons.lock_open : Icons.lock,
+                                      isDarkMode,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Join button
+                        if (tournament.isRegistrationOpen)
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _joinTournament(tournament);
+                              },
+                              icon: const Icon(Icons.add),
+                              label: const Text('Join Tournament'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Builds a detail section with title and content
+  Widget _buildDetailSection(String title, String content, IconData icon, bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          content,
+          style: TextStyle(
+            fontSize: 14,
+            color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade700,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds a detail item for the grid
+  Widget _buildDetailItem(String label, String value, IconData icon, bool isDarkMode) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 24,
+          color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 

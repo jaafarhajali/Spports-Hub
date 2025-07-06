@@ -5,6 +5,7 @@ import '../models/academy.dart';
 import '../services/academy_service.dart';
 import '../services/user_service.dart';
 import '../auth_service.dart';
+import '../utils/validation_utils.dart';
 
 class AcademyFormScreen extends StatefulWidget {
   final Academy? academy; // null for create, Academy object for edit
@@ -692,15 +693,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
                             hint: '+1234567890',
                             icon: Icons.phone,
                             keyboardType: TextInputType.phone,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter phone number';
-                              }
-                              if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value)) {
-                                return 'Please enter a valid phone number';
-                              }
-                              return null;
-                            },
+                            validator: ValidationUtils.validatePhone,
                           ),
                           const SizedBox(height: 16),
                           _buildTextField(
@@ -709,15 +702,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
                             hint: 'academy@example.com',
                             icon: Icons.email,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter email';
-                              }
-                              if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
-                                return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
+                            validator: ValidationUtils.validateEmail,
                           ),
                         ],
                       );
@@ -732,15 +717,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
                               hint: '+1234567890',
                               icon: Icons.phone,
                               keyboardType: TextInputType.phone,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter phone number';
-                                }
-                                if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value)) {
-                                  return 'Please enter a valid phone number';
-                                }
-                                return null;
-                              },
+                              validator: ValidationUtils.validatePhone,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -751,15 +728,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
                               hint: 'academy@example.com',
                               icon: Icons.email,
                               keyboardType: TextInputType.emailAddress,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter email';
-                                }
-                                if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
-                                  return 'Please enter a valid email';
-                                }
-                                return null;
-                              },
+                              validator: ValidationUtils.validateEmail,
                             ),
                           ),
                         ],

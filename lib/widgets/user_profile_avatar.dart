@@ -53,9 +53,21 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
   }
 
   Widget _buildDefaultAvatar(ColorScheme colorScheme) {
+    final userName = widget.userProfile?['name'] ?? widget.userProfile?['username'] ?? 'User';
+    final firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+    
     return Container(
       color: colorScheme.primary.withOpacity(0.1),
-      child: Icon(Icons.person, size: 60, color: colorScheme.primary),
+      child: Center(
+        child: Text(
+          firstLetter,
+          style: TextStyle(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.primary,
+          ),
+        ),
+      ),
     );
   }
 

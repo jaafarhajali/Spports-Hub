@@ -206,6 +206,11 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
+          IconButton(
+            onPressed: _isLoading ? null : _loadTeamData,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh team data',
+          ),
           if (_team != null && _isLeader) ...[
             IconButton(
               onPressed: () async {

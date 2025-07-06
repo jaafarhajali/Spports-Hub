@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/team_service.dart';
 import '../themes/app_theme.dart';
+import '../utils/validation_utils.dart';
 
 class CreateTeamScreen extends StatefulWidget {
   const CreateTeamScreen({super.key});
@@ -292,18 +293,12 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
                           fillColor: isDarkMode ? AppTheme.darkSurface : AppTheme.lightSurface,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a team name';
-                        }
-                        if (value.trim().length < 3) {
-                          return 'Team name must be at least 3 characters';
-                        }
-                        if (value.trim().length > 30) {
-                          return 'Team name must be less than 30 characters';
-                        }
-                        return null;
-                      },
+                      validator: (value) => ValidationUtils.validateLength(
+                        value?.trim(),
+                        'Team name',
+                        minLength: 3,
+                        maxLength: 30,
+                      ),
                       textCapitalization: TextCapitalization.words,
                       ),
                     ),

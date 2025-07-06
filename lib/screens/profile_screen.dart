@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:first_attempt/services/user_service.dart';
 import 'package:first_attempt/widgets/user_profile_avatar.dart';
 import 'package:first_attempt/utils/image_utils.dart';
+import '../utils/validation_utils.dart';
 import '../themes/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -494,15 +495,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Username',
             icon: Icons.person_outline,
             enabled: _isEditing,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Username is required';
-              }
-              if (value.trim().length < 3) {
-                return 'Username must be at least 3 characters';
-              }
-              return null;
-            },
+            validator: ValidationUtils.validateUsername,
           ),
           const SizedBox(height: 16),
           _buildInputField(
@@ -511,17 +504,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.email_outlined,
             enabled: _isEditing,
             keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Email is required';
-              }
-              if (!RegExp(
-                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-              ).hasMatch(value)) {
-                return 'Please enter a valid email';
-              }
-              return null;
-            },
+            validator: ValidationUtils.validateEmail,
           ),
           const SizedBox(height: 16),
           _buildInputField(
@@ -530,12 +513,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.phone_outlined,
             enabled: _isEditing,
             keyboardType: TextInputType.phone,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Phone number is required';
-              }
-              return null;
-            },
+            validator: ValidationUtils.validatePhone,
           ),
           const SizedBox(height: 24),
           _buildInfoRow(
