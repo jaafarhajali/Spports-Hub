@@ -52,6 +52,7 @@ class UserService {
       final userData = jsonDecode(data);
 
       print('Decoded user data: $userData');
+      print('isVerified from JWT: ${userData['isVerified']}');
 
       return {
         'id': userData['id'],
@@ -61,6 +62,7 @@ class UserService {
         'profilePhoto': userData['profilePhoto'],
         'role': userData['role'],
         'isActive': userData['isActive'],
+        'isVerified': userData['isVerified'], // Add this line!
         'termsAccepted': userData['termsAccepted'],
         'createdAt': userData['createdAt'],
         'updatedAt': userData['updatedAt'],

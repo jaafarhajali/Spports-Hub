@@ -13,6 +13,7 @@ import 'screens/create_stadium_screen.dart';
 import 'screens/team_management_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/reset_password_screen.dart';
+import 'screens/email_verification_screen.dart';
 import 'log page/signin_page.dart';
 import 'log page/signup_page.dart';
 
@@ -59,10 +60,19 @@ class _SportsHubAppState extends State<SportsHubApp> {
 
   void _handleDeepLink(Uri uri) {
     print('Deep link received: $uri');
-    if (uri.scheme == 'sportshub' && uri.host == 'reset_password') {
-      final token = uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : '';
-      if (token.isNotEmpty) {
-        navigatorKey.currentState?.pushNamed('/reset_password/$token');
+    if (uri.scheme == 'sportshub') {
+      if (uri.host == 'reset_password') {
+        final token = uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : '';
+        if (token.isNotEmpty) {
+          navigatorKey.currentState?.pushNamed('/reset_password/$token');
+        }
+      } else if (uri.host == 'verify_email') {
+        // Handle verification from redirect page (verifyToken parameter)
+        final token = uri.queryParameters['verifyToken'] ?? 
+                     (uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : '');
+        if (token.isNotEmpty) {
+          navigatorKey.currentState?.pushNamed('/verify_email/$token');
+        }
       }
     }
   }
@@ -98,12 +108,27 @@ class _SportsHubAppState extends State<SportsHubApp> {
         '/team_management': (context) => const TeamManagementScreen(),
       },
 
-      // Handle dynamic routes for password reset
+      // Handle dynamic routes for password reset and email verification
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/reset_password/')) {
           final token = settings.name!.split('/')[2];
           return MaterialPageRoute(
             builder: (context) => ResetPasswordScreen(token: token),
+          );
+        } else if (settings.name != null && settings.name!.startsWith('/verify_email/')) {
+          final token = settings.name!.split('/')[2];
+          return MaterialPageRoute(
+            builder: (context) => EmailVerificationScreen(
+              email: '', // Email will be extracted from token or user context
+              token: token,
+            ),
+          );
+        } else if (settings.name == '/email_verification') {
+          final email = settings.arguments as String?;
+          return MaterialPageRoute(
+            builder: (context) => EmailVerificationScreen(
+              email: email ?? '',
+            ),
           );
         }
         return null;

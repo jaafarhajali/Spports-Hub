@@ -7,6 +7,7 @@ import 'package:first_attempt/widgets/user_profile_avatar.dart';
 import 'package:first_attempt/utils/image_utils.dart';
 import '../utils/validation_utils.dart';
 import '../themes/app_theme.dart';
+import '../auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +18,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
+  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
 
   final _usernameController = TextEditingController();
@@ -29,10 +31,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   bool _isEditing = false;
   bool _isUploadingImage = false;
+  bool _isSendingVerification = false;
 
   @override
   void initState() {
     super.initState();
+    _loadUserProfile();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload profile when returning to this screen (e.g., after verification)
     _loadUserProfile();
   }
 
@@ -61,6 +71,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _refreshProfile() async {
+    // Force refresh by clearing any cached data
+    setState(() {
+      _userProfile = null;
+    });
+    await _loadUserProfile();
   }
 
   Future<void> _pickImage() async {
@@ -198,6 +216,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _sendVerificationEmail() async {
+    setState(() => _isSendingVerification = true);
+    
+    try {
+      // Get email from profile or stored user data
+      String email = _userProfile?['email'] ?? '';
+      if (email.isEmpty) {
+        final userData = await _authService.getUserData();
+        email = userData['email'] ?? '';
+      }
+      
+      final result = await _authService.sendVerificationEmail(email);
+      
+      if (result != null && result['success'] == true) {
+        _showSnackBar('Verification email sent! Please check your inbox.');
+      } else {
+        _showSnackBar((result != null && result['message'] != null) ? result['message'] : 'Failed to send verification email', isError: true);
+      }
+    } catch (e) {
+      _showSnackBar('Failed to send verification email: $e', isError: true);
+    } finally {
+      setState(() => _isSendingVerification = false);
+    }
+  }
+
+
+  Future<bool> _isEmailVerified() async {
+    return await _authService.isEmailVerified();
+  }
+
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -303,7 +351,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             )
-          : CustomScrollView(
+          : RefreshIndicator(
+              onRefresh: _refreshProfile,
+              child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
@@ -325,6 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ],
+            ),
             ),
     );
   }
@@ -535,6 +586,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             statusColor:
                 _userProfile?['isActive'] == true ? Colors.green : Colors.red,
           ),
+          const SizedBox(height: 12),
+          _buildEmailVerificationSection(),
         ],
       ),
     );
@@ -761,6 +814,158 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildEmailVerificationSection() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // Check verification status from both profile data and JWT token
+    final isVerified = _userProfile?['isVerified'] == true;
+    
+    print('Email verification section - isVerified: $isVerified, userProfile: ${_userProfile?['isVerified']}');
+    print('Full user profile data: $_userProfile');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isVerified 
+            ? Colors.green.withOpacity(0.1)
+            : Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isVerified 
+              ? Colors.green.withOpacity(0.3)
+              : Colors.orange.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isVerified ? Colors.green : Colors.orange).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isVerified ? Icons.verified : Icons.mail_outline,
+                  size: 18,
+                  color: isVerified ? Colors.green : Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Email Verification',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isVerified 
+                          ? 'Your email is verified'
+                          : 'Your email is not verified',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isVerified ? Colors.green : Colors.orange,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!isVerified)
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.orange, Colors.deepOrange],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isSendingVerification ? null : _sendVerificationEmail,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isSendingVerification
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Verify',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
+            ],
+          ),
+          if (!isVerified) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? AppTheme.darkSurface.withOpacity(0.3)
+                    : Colors.white.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Verify your email to access all features and ensure account security.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

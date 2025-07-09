@@ -43,7 +43,9 @@ class AuthService {
   }
 
   // Store user data
-  Future<void> storeUserData(Map<String, dynamic> userData) async {
+  Future<void> storeUserData(Map<String, dynamic>? userData) async {
+    if (userData == null) return;
+    
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       'user_name',
@@ -258,6 +260,109 @@ class AuthService {
       return result;
     } catch (e) {
       return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // Send verification email
+  Future<Map<String, dynamic>> sendVerificationEmail(String email) async {
+    try {
+      final token = await getToken();
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/send-verification?platform=mobile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      return _handleVerificationResponse(response);
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // Verify email with token
+  Future<Map<String, dynamic>> verifyEmail(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/verify-email?token=$token'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      final result = _handleVerificationResponse(response);
+
+      // Store new token and user data if verification successful
+      if (result['success'] == true && result.containsKey('token') && result['token'] != null) {
+        print('Storing new token after verification: ${result['token']}');
+        await storeToken(result['token']);
+        
+        if (result.containsKey('user') && result['user'] != null) {
+          print('Storing user data after verification: ${result['user']}');
+          await storeUserData(result['user']);
+        }
+      } else {
+        print('No token found in verification result: $result');
+      }
+
+      return result;
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // Check if current user's email is verified
+  Future<bool> isEmailVerified() async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+
+      // Decode JWT token to get verification status
+      final parts = token.split('.');
+      if (parts.length != 3) return false;
+
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final Map<String, dynamic> data = jsonDecode(decoded);
+
+      return data['isVerified'] == true;
+    } catch (e) {
+      print('Error checking email verification: $e');
+      return false;
+    }
+  }
+
+  // Process HTTP response for verification endpoints
+  Map<String, dynamic> _handleVerificationResponse(http.Response response) {
+    try {
+      print('Verification response status: ${response.statusCode}');
+      print('Raw verification response body: ${response.body}');
+      
+      if (response.body.isEmpty) {
+        return {'success': false, 'message': 'Empty response from server'};
+      }
+      
+      final data = jsonDecode(response.body);
+      print('Parsed verification response: $data');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Backend returns {message: "...", token: "..."} format
+        // Convert to expected format
+        return {
+          'success': true,
+          'message': (data is Map<String, dynamic>) ? (data['message'] ?? 'Success') : 'Success',
+          'token': (data is Map<String, dynamic>) ? data['token'] : null,
+          'user': (data is Map<String, dynamic>) ? data['user'] : null,
+        };
+      } else {
+        // Handle error responses
+        final message = (data is Map<String, dynamic>) ? (data['message'] ?? 'Unknown error occurred') : 'Unknown error occurred';
+        return {'success': false, 'message': message};
+      }
+    } catch (e) {
+      print('Verification response parsing error: ${e.toString()}');
+      print('Raw verification response body: ${response.body}');
+      return {'success': false, 'message': 'Failed to parse server response: ${e.toString()}'};
     }
   }
 
