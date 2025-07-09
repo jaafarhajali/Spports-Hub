@@ -92,7 +92,7 @@ class FormValidationSummary extends StatelessWidget {
                   ),
                 ],
               ),
-            )).toList(),
+            )),
           ],
         ],
       ),

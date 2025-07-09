@@ -117,7 +117,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
           const SizedBox(height: 8),
           ...requirements.map((requirement) => 
             _buildRequirementItem(requirement, isDarkMode)
-          ).toList(),
+          ),
         ],
       ),
     );

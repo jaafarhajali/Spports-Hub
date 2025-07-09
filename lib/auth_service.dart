@@ -86,7 +86,7 @@ class AuthService {
       // Store token and user data if registration successful
       if (result['success'] == true && result.containsKey('token')) {
         await storeToken(result['token']);
-        
+
         // Store user data if available
         if (result.containsKey('user')) {
           await storeUserData(result['user']);
@@ -163,16 +163,16 @@ class AuthService {
     try {
       final token = await getToken();
       if (token == null) return null;
-      
+
       // Decode JWT token to get user role
       final parts = token.split('.');
       if (parts.length != 3) return null;
-      
+
       final payload = parts[1];
       final normalized = base64Url.normalize(payload);
       final decoded = utf8.decode(base64Url.decode(normalized));
       final Map<String, dynamic> data = jsonDecode(decoded);
-      
+
       return data['role']?.toString();
     } catch (e) {
       print('Error getting user role: $e');
@@ -185,16 +185,16 @@ class AuthService {
     try {
       final token = await getToken();
       if (token == null) return null;
-      
+
       // Decode JWT token to get user ID
       final parts = token.split('.');
       if (parts.length != 3) return null;
-      
+
       final payload = parts[1];
       final normalized = base64Url.normalize(payload);
       final decoded = utf8.decode(base64Url.decode(normalized));
       final Map<String, dynamic> data = jsonDecode(decoded);
-      
+
       return data['userId']?.toString() ?? data['id']?.toString();
     } catch (e) {
       print('Error getting user ID: $e');
@@ -213,10 +213,10 @@ class AuthService {
   }
 
   // Forgot password
-  Future<Map<String, dynamic>> forgotPassword(String email) async {
+ Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/forgotPassword'),
+        Uri.parse('$baseUrl/auth/forgotPassword?platform=mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -228,7 +228,11 @@ class AuthService {
   }
 
   // Reset password
-  Future<Map<String, dynamic>> resetPassword(String token, String password, String passwordConfirm) async {
+  Future<Map<String, dynamic>> resetPassword(
+    String token,
+    String password,
+    String passwordConfirm,
+  ) async {
     try {
       final response = await http.patch(
         Uri.parse('$baseUrl/auth/resetPassword/$token'),
@@ -244,7 +248,7 @@ class AuthService {
       // Store token and user data if reset successful
       if (result['success'] == true && result.containsKey('token')) {
         await storeToken(result['token']);
-        
+
         // Store user data if available
         if (result.containsKey('user')) {
           await storeUserData(result['user']);
@@ -271,12 +275,12 @@ class AuthService {
             'success': true,
             'token': data['token'],
             'user': data['user'],
-            'message': 'Success'
+            'message': 'Success',
           };
         } else {
           return {
             'success': false,
-            'message': data['message'] ?? 'Operation failed'
+            'message': data['message'] ?? 'Operation failed',
           };
         }
       } else {
