@@ -5,6 +5,7 @@ class User {
   final String role;
   final String? name;
   final String? profileImage;
+  final double wallet;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +16,7 @@ class User {
     required this.role,
     this.name,
     this.profileImage,
+    required this.wallet,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -27,6 +29,7 @@ class User {
       role: json['role']?.toString() ?? 'user',
       name: json['name']?.toString(),
       profileImage: json['profileImage']?.toString(),
+      wallet: (json['wallet'] ?? 0).toDouble(),
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
     );
@@ -40,6 +43,7 @@ class User {
       'role': role,
       'name': name,
       'profileImage': profileImage,
+      'wallet': wallet,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };

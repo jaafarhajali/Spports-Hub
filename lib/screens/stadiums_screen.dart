@@ -4,12 +4,13 @@ import '../services/stadium_service.dart';
 import '../services/booking_service.dart';
 import '../services/app_config.dart';
 import '../themes/app_theme.dart';
+import '../widgets/payment_popup.dart';
 import 'stadium_form_screen.dart';
 
 // Change class name from BookingScreen to StadiumsScreen
 class StadiumsScreen extends StatefulWidget {
   final String? searchQuery;
-  
+
   const StadiumsScreen({super.key, this.searchQuery});
 
   @override
@@ -48,7 +49,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
       _canCreateStadiums = canCreate;
     });
   }
-  
+
   @override
   void didUpdateWidget(StadiumsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -98,10 +99,11 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   void _applySearchFilter() {
     if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
       final query = widget.searchQuery!.toLowerCase();
-      _filteredStadiums = _allStadiums.where((stadium) {
-        return stadium.name.toLowerCase().contains(query) ||
-               stadium.location.toLowerCase().contains(query);
-      }).toList();
+      _filteredStadiums =
+          _allStadiums.where((stadium) {
+            return stadium.name.toLowerCase().contains(query) ||
+                stadium.location.toLowerCase().contains(query);
+          }).toList();
     } else {
       _filteredStadiums = List.from(_allStadiums);
     }
@@ -110,11 +112,9 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   Future<void> _navigateToCreateStadium() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const StadiumFormScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const StadiumFormScreen()),
     );
-    
+
     if (result == true) {
       _loadStadiums(); // Reload stadiums after creating
     }
@@ -127,7 +127,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
         builder: (context) => StadiumFormScreen(stadium: stadium),
       ),
     );
-    
+
     if (result == true) {
       _loadStadiums(); // Reload stadiums after editing
     }
@@ -136,21 +136,22 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   Future<void> _deleteStadium(Stadium stadium) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Stadium'),
-        content: Text('Are you sure you want to delete "${stadium.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Stadium'),
+            content: Text('Are you sure you want to delete "${stadium.name}"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
@@ -174,7 +175,8 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
+      backgroundColor:
+          isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
       body: RefreshIndicator(
         color: AppTheme.primaryBlue,
         onRefresh: _loadStadiums,
@@ -197,26 +199,27 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
           ],
         ),
       ),
-      floatingActionButton: _canCreateStadiums
-          ? Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors: AppTheme.gradientTeal,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      floatingActionButton:
+          _canCreateStadiums
+              ? Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: const LinearGradient(
+                    colors: AppTheme.gradientTeal,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: AppTheme.mediumShadow,
                 ),
-                boxShadow: AppTheme.mediumShadow,
-              ),
-              child: FloatingActionButton(
-                onPressed: _navigateToCreateStadium,
-                heroTag: "stadiums_main_fab",
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                child: const Icon(Icons.add, color: Colors.white),
-              ),
-            )
-          : null,
+                child: FloatingActionButton(
+                  onPressed: _navigateToCreateStadium,
+                  heroTag: "stadiums_main_fab",
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
+              )
+              : null,
     );
   }
 
@@ -291,11 +294,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.calendar_today,
-                color: Colors.white,
-                size: 20,
-              ),
+              const Icon(Icons.calendar_today, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               const Text(
                 'Select Date',
@@ -336,28 +335,32 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
   // Build individual date item
   Widget _buildDateItem(DateTime date, bool isSelected) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final isToday = DateTime.now().day == date.day && 
-                   DateTime.now().month == date.month && 
-                   DateTime.now().year == date.year;
+    final isToday =
+        DateTime.now().day == date.day &&
+        DateTime.now().month == date.month &&
+        DateTime.now().year == date.year;
 
     return Container(
       margin: const EdgeInsets.only(right: 16),
       width: 70,
       decoration: BoxDecoration(
-        gradient: isSelected
-            ? const LinearGradient(
-                colors: AppTheme.gradientTeal,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        color: !isSelected
-            ? (isDarkMode ? AppTheme.darkCard : AppTheme.lightCard)
-            : null,
+        gradient:
+            isSelected
+                ? const LinearGradient(
+                  colors: AppTheme.gradientTeal,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+                : null,
+        color:
+            !isSelected
+                ? (isDarkMode ? AppTheme.darkCard : AppTheme.lightCard)
+                : null,
         borderRadius: BorderRadius.circular(18),
-        border: isToday && !isSelected
-            ? Border.all(color: AppTheme.primaryBlue, width: 2)
-            : null,
+        border:
+            isToday && !isSelected
+                ? Border.all(color: AppTheme.primaryBlue, width: 2)
+                : null,
         boxShadow: isSelected ? AppTheme.mediumShadow : AppTheme.softShadow,
       ),
       child: Column(
@@ -368,9 +371,12 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
-              color: isSelected
-                  ? Colors.white
-                  : (isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+              color:
+                  isSelected
+                      ? Colors.white
+                      : (isDarkMode
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary),
             ),
           ),
           const SizedBox(height: 6),
@@ -379,9 +385,12 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: isSelected
-                  ? Colors.white
-                  : (isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
+              color:
+                  isSelected
+                      ? Colors.white
+                      : (isDarkMode
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary),
             ),
           ),
           const SizedBox(height: 4),
@@ -390,9 +399,12 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
-              color: isSelected
-                  ? Colors.white.withOpacity(0.9)
-                  : (isDarkMode ? AppTheme.darkTextTertiary : AppTheme.lightTextTertiary),
+              color:
+                  isSelected
+                      ? Colors.white.withOpacity(0.9)
+                      : (isDarkMode
+                          ? AppTheme.darkTextTertiary
+                          : AppTheme.lightTextTertiary),
             ),
           ),
           if (isToday)
@@ -430,11 +442,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.stadium,
-                color: Colors.white,
-                size: 20,
-              ),
+              const Icon(Icons.stadium, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Available Stadiums (${_filteredStadiums.length})',
@@ -470,9 +478,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                   Text(
                     'Loading stadiums...',
                     style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
+                      color:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -505,9 +514,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppTheme.darkTextPrimary
-                          : AppTheme.lightTextPrimary,
+                      color:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.darkTextPrimary
+                              : AppTheme.lightTextPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -515,9 +525,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                     'Try selecting a different date or check back later',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
+                      color:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -561,9 +572,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: AppTheme.mediumShadow,
         border: Border.all(
-          color: isDarkMode
-              ? AppTheme.darkBorder.withOpacity(0.3)
-              : AppTheme.lightBorder.withOpacity(0.5),
+          color:
+              isDarkMode
+                  ? AppTheme.darkBorder.withOpacity(0.3)
+                  : AppTheme.lightBorder.withOpacity(0.5),
           width: 1,
         ),
       ),
@@ -655,7 +667,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                             ],
                           ),
                           child: PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, color: Colors.white),
+                            icon: const Icon(
+                              Icons.more_vert,
+                              color: Colors.white,
+                            ),
                             onSelected: (value) {
                               if (value == 'edit') {
                                 _navigateToEditStadium(stadium);
@@ -663,28 +678,32 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                                 _deleteStadium(stadium);
                               }
                             },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete', style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            itemBuilder:
+                                (context) => [
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit),
+                                        SizedBox(width: 8),
+                                        Text('Edit'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                           ),
                         ),
                       );
@@ -724,16 +743,20 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: isDarkMode
-                              ? AppTheme.darkTextPrimary
-                              : AppTheme.lightTextPrimary,
+                          color:
+                              isDarkMode
+                                  ? AppTheme.darkTextPrimary
+                                  : AppTheme.lightTextPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.amber.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -745,7 +768,11 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                          const Icon(
+                            Icons.star_rounded,
+                            color: Colors.amber,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           const Text(
                             '4.8',
@@ -767,9 +794,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? AppTheme.darkSurface.withOpacity(0.5)
-                        : AppTheme.lightSecondary,
+                    color:
+                        isDarkMode
+                            ? AppTheme.darkSurface.withOpacity(0.5)
+                            : AppTheme.lightSecondary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -790,9 +818,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                       Text(
                         _getSportTypeFromName(stadium.name),
                         style: TextStyle(
-                          color: isDarkMode
-                              ? AppTheme.darkTextSecondary
-                              : AppTheme.lightTextSecondary,
+                          color:
+                              isDarkMode
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary,
                           fontWeight: FontWeight.w500,
                           fontSize: 13,
                         ),
@@ -815,9 +844,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                         child: Text(
                           _capitalizeEachWord(stadium.location),
                           style: TextStyle(
-                            color: isDarkMode
-                                ? AppTheme.darkTextSecondary
-                                : AppTheme.lightTextSecondary,
+                            color:
+                                isDarkMode
+                                    ? AppTheme.darkTextSecondary
+                                    : AppTheme.lightTextSecondary,
                             fontWeight: FontWeight.w500,
                             fontSize: 13,
                           ),
@@ -852,9 +882,10 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: isDarkMode
-                            ? AppTheme.darkTextPrimary
-                            : AppTheme.lightTextPrimary,
+                        color:
+                            isDarkMode
+                                ? AppTheme.darkTextPrimary
+                                : AppTheme.lightTextPrimary,
                       ),
                     ),
                   ],
@@ -886,7 +917,8 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: _isBooking ? null : () => _createBooking(stadium),
+                    onPressed:
+                        _isBooking ? null : () => _createBooking(stadium),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       foregroundColor: Colors.white,
@@ -896,29 +928,30 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: _isBooking
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.calendar_today, size: 18),
-                              SizedBox(width: 8),
-                              Text(
-                                'Book Now',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                    child:
+                        _isBooking
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               ),
-                            ],
-                          ),
+                            )
+                            : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.calendar_today, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Book Now',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                   ),
                 ),
               ],
@@ -933,7 +966,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     final selectedDate = _availableDates[_selectedDateIndex];
     final availableSlots = stadium.getAvailableSlots(selectedDate);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     if (availableSlots.isEmpty) {
       return Container(
         height: 50,
@@ -948,11 +981,7 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: AppTheme.errorRed,
-              size: 16,
-            ),
+            const Icon(Icons.error_outline, color: AppTheme.errorRed, size: 16),
             const SizedBox(width: 8),
             const Expanded(
               child: Text(
@@ -997,46 +1026,52 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
               margin: const EdgeInsets.only(right: 10),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                gradient: isSelected
-                    ? const LinearGradient(
-                        colors: AppTheme.gradientPurple,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: !isSelected
-                    ? (isDarkMode
-                        ? AppTheme.darkSurface.withOpacity(0.5)
-                        : AppTheme.lightSecondary)
-                    : null,
+                gradient:
+                    isSelected
+                        ? const LinearGradient(
+                          colors: AppTheme.gradientPurple,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                        : null,
+                color:
+                    !isSelected
+                        ? (isDarkMode
+                            ? AppTheme.darkSurface.withOpacity(0.5)
+                            : AppTheme.lightSecondary)
+                        : null,
                 borderRadius: BorderRadius.circular(12),
-                border: !isSelected
-                    ? Border.all(
-                        color: isDarkMode
-                            ? AppTheme.darkBorder.withOpacity(0.3)
-                            : AppTheme.lightBorder,
-                        width: 1,
-                      )
-                    : null,
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppTheme.accentPurple.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
+                border:
+                    !isSelected
+                        ? Border.all(
+                          color:
+                              isDarkMode
+                                  ? AppTheme.darkBorder.withOpacity(0.3)
+                                  : AppTheme.lightBorder,
+                          width: 1,
+                        )
+                        : null,
+                boxShadow:
+                    isSelected
+                        ? [
+                          BoxShadow(
+                            color: AppTheme.accentPurple.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                        : null,
               ),
               alignment: Alignment.center,
               child: Text(
                 slot.startTime,
                 style: TextStyle(
-                  color: isSelected
-                      ? Colors.white
-                      : (isDarkMode
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary),
+                  color:
+                      isSelected
+                          ? Colors.white
+                          : (isDarkMode
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: 13,
                 ),
@@ -1064,15 +1099,49 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
 
     final selectedSlot = availableSlots[_selectedTimeSlot];
 
-    // Show booking confirmation dialog
-    final confirmed = await _showBookingConfirmationDialog(
-      stadium,
-      selectedDate,
-      selectedSlot.startTime,
+    // Show payment popup
+    await _showPaymentPopup(stadium, selectedDate, selectedSlot.startTime);
+  }
+
+  // Show payment popup
+  Future<void> _showPaymentPopup(
+    Stadium stadium,
+    DateTime date,
+    String timeSlot,
+  ) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PaymentPopup(
+          amount: stadium.pricePerMatch,
+          stadiumName: stadium.name,
+          bookingDate: date,
+          timeSlot: timeSlot,
+          onPaymentSuccess: (paymentResult) async {
+            Navigator.of(context).pop(); // Close payment popup
+            await _processBookingAfterPayment(
+              stadium,
+              date,
+              timeSlot,
+              paymentResult,
+            );
+          },
+          onCancel: () {
+            Navigator.of(context).pop(); // Close payment popup
+          },
+        );
+      },
     );
+  }
 
-    if (!confirmed) return;
-
+  // Process booking after successful payment
+  Future<void> _processBookingAfterPayment(
+    Stadium stadium,
+    DateTime date,
+    String timeSlot,
+    Map<String, dynamic> paymentResult,
+  ) async {
     setState(() {
       _isBooking = true;
     });
@@ -1080,8 +1149,8 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     try {
       final result = await _bookingService.createBooking(
         stadiumId: stadium.id,
-        matchDate: selectedDate,
-        timeSlot: selectedSlot.startTime,
+        matchDate: date,
+        timeSlot: timeSlot,
       );
 
       if (result['success']) {
@@ -1099,56 +1168,6 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
         _isBooking = false;
       });
     }
-  }
-
-  // Show booking confirmation dialog
-  Future<bool> _showBookingConfirmationDialog(
-    Stadium stadium,
-    DateTime date,
-    String timeSlot,
-  ) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Confirm Booking'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Stadium: ${_capitalizeEachWord(stadium.name)}'),
-                  const SizedBox(height: 8),
-                  Text('Date: ${_formatDate(date)}'),
-                  const SizedBox(height: 8),
-                  Text('Time: $timeSlot'),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Price: ${stadium.pricePerMatch.toStringAsFixed(0)} LBP',
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Are you sure you want to book this stadium?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Confirm'),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
   }
 
   // Navigate to booking details
@@ -1202,25 +1221,6 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
-  }
-
-  // Format date for display
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   // Helper method to determine sport type from stadium name
@@ -1429,17 +1429,17 @@ class _StadiumsScreenState extends State<StadiumsScreen> {
     if (photoPath == null || photoPath.isEmpty) {
       return ''; // Return empty string for placeholder handling
     }
-    
+
     // If the path already starts with http, return as is
     if (photoPath.startsWith('http')) {
       return photoPath;
     }
-    
+
     // If it's a relative path starting with /images, construct full URL
     if (photoPath.startsWith('/images')) {
       return '${AppConfig.baseUrl}$photoPath';
     }
-    
+
     // If it's just a filename, assume it's in the stadium images directory
     return '${AppConfig.baseUrl}/images/stadiumsImages/$photoPath';
   }

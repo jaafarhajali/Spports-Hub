@@ -64,12 +64,45 @@ class UserService {
         'isActive': userData['isActive'],
         'isVerified': userData['isVerified'], // Add this line!
         'termsAccepted': userData['termsAccepted'],
+        'wallet': userData['wallet'] ?? 0, // Add wallet
         'createdAt': userData['createdAt'],
         'updatedAt': userData['updatedAt'],
       };
     } catch (e) {
       print('Error getting user profile: $e');
       return null;
+    }
+  }
+
+  // Get current user profile from server (fresh data including wallet)
+  Future<Map<String, dynamic>> getCurrentUserProfile() async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': responseData['data']};
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to get profile',
+        };
+      }
+    } catch (e) {
+      print('Get current user profile error: $e');
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
   }
 
@@ -118,11 +151,14 @@ class UserService {
       // Add profile photo using the direct multipart approach (primary method)
       // The backend userController expects 'profilePhoto' field for the image
       if (kIsWeb && profilePhotoBytes != null) {
-        print('Adding profile photo from bytes: ${profilePhotoBytes.length} bytes');
+        print(
+          'Adding profile photo from bytes: ${profilePhotoBytes.length} bytes',
+        );
         final multipartFile = http.MultipartFile.fromBytes(
           'profilePhoto',
           profilePhotoBytes,
-          filename: 'profile_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          filename:
+              'profile_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
         request.files.add(multipartFile);
       } else if (!kIsWeb && profilePhoto != null) {
@@ -190,11 +226,14 @@ class UserService {
 
       // Add profile photo
       if (kIsWeb && profilePhotoBytes != null) {
-        print('Adding profile photo from bytes: ${profilePhotoBytes.length} bytes');
+        print(
+          'Adding profile photo from bytes: ${profilePhotoBytes.length} bytes',
+        );
         final multipartFile = http.MultipartFile.fromBytes(
           'image', // Backend expects 'image' field name
           profilePhotoBytes,
-          filename: 'profile_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          filename:
+              'profile_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
         request.files.add(multipartFile);
       } else if (!kIsWeb && profilePhoto != null) {
@@ -281,7 +320,9 @@ class UserService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print('All users response: ${response.body}');
-        if (data['status'] == 'success' && data['data'] != null && data['data']['users'] != null) {
+        if (data['status'] == 'success' &&
+            data['data'] != null &&
+            data['data']['users'] != null) {
           return List<Map<String, dynamic>>.from(data['data']['users']);
         }
         return [];
@@ -333,7 +374,9 @@ class UserService {
         }
         return [];
       } else {
-        throw Exception('Failed to load stadium owners: ${response.statusCode}');
+        throw Exception(
+          'Failed to load stadium owners: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error getting stadium owners: $e');
@@ -366,7 +409,9 @@ class UserService {
         }
         return [];
       } else {
-        throw Exception('Failed to load academy owners: ${response.statusCode}');
+        throw Exception(
+          'Failed to load academy owners: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error getting academy owners: $e');
