@@ -3,6 +3,7 @@ import '../models/tournament.dart';
 import '../services/tournament_service.dart';
 import '../services/team_service.dart';
 import '../models/team.dart';
+import '../widgets/tournament_payment_popup.dart';
 
 class TournamentsScreen extends StatefulWidget {
   final String? searchQuery;
@@ -122,6 +123,24 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       return;
     }
 
+    // Show payment popup first
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TournamentPaymentPopup(
+        tournament: tournament,
+        onPaymentSuccess: (paymentResult) async {
+          Navigator.of(context).pop(); // Close payment popup
+          await _processTournamentJoin(tournament, paymentResult);
+        },
+        onCancel: () {
+          Navigator.of(context).pop(); // Close payment popup
+        },
+      ),
+    );
+  }
+
+  Future<void> _processTournamentJoin(Tournament tournament, Map<String, dynamic> paymentResult) async {
     try {
       final teamId = _userTeam?.id;
       if (teamId == null || teamId.isEmpty) {

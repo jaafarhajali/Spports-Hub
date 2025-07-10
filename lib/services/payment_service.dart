@@ -68,6 +68,54 @@ class PaymentService {
     }
   }
 
+  // Process tournament payment (for joining tournaments)
+  Future<Map<String, dynamic>> processTournamentPayment({
+    required double amount,
+    required String cardNumber,
+    required String expiryDate,
+    required String cvv,
+    String cardHolderName = 'Card Holder',
+  }) async {
+    try {
+      // Validate card details
+      if (!validateCardNumber(cardNumber)) {
+        return {'success': false, 'message': 'Invalid card number'};
+      }
+
+      if (!validateExpiryDate(expiryDate)) {
+        return {'success': false, 'message': 'Invalid expiry date'};
+      }
+
+      if (!validateCVV(cvv)) {
+        return {'success': false, 'message': 'Invalid CVV'};
+      }
+
+      if (cardHolderName.trim().isEmpty) {
+        return {'success': false, 'message': 'Card holder name is required'};
+      }
+
+      // In a real app, you would process the payment with a payment gateway here
+      // For now, we'll simulate a successful payment since the tournament join endpoint
+      // handles the wallet deduction and validation
+
+      await Future.delayed(
+        const Duration(seconds: 2),
+      ); // Simulate payment processing
+
+      return {
+        'success': true,
+        'message': 'Tournament payment processed successfully',
+        'transactionId': 'TXN_TOUR_${DateTime.now().millisecondsSinceEpoch}',
+      };
+    } catch (e) {
+      print('Process tournament payment error: $e');
+      return {
+        'success': false,
+        'message': 'Tournament payment processing failed: ${e.toString()}',
+      };
+    }
+  }
+
   // Validate card number (basic Luhn algorithm)
   bool validateCardNumber(String cardNumber) {
     // Remove spaces and non-digits
