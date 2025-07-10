@@ -25,6 +25,13 @@ class _SignUpPageState extends State<SignUpPage> {
   final _authService = AuthService(); // Initialize auth service
 
   @override
+  void initState() {
+    super.initState();
+    // Set default "+" in phone number field
+    _phoneController.text = '+';
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _phoneController.dispose();
@@ -108,7 +115,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: isDarkMode ? Color(0xFF121212) : Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -168,7 +175,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
                 SizedBox(height: 24),
-                
+
                 // App name
                 Text(
                   'SPORTS HUB',
@@ -188,7 +195,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
                 SizedBox(height: 48),
-                
+
                 // Signup form
                 Container(
                   constraints: BoxConstraints(maxWidth: 400),
@@ -209,13 +216,19 @@ class _SignUpPageState extends State<SignUpPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -226,13 +239,14 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                             ),
                             filled: true,
-                            fillColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            fillColor:
+                                isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 16,
                             ),
                           ),
-                    validator: ValidationUtils.validateUsername,
+                          validator: ValidationUtils.validateUsername,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
@@ -248,13 +262,19 @@ class _SignUpPageState extends State<SignUpPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -265,14 +285,15 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                             ),
                             filled: true,
-                            fillColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            fillColor:
+                                isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 16,
                             ),
                           ),
-                    keyboardType: TextInputType.phone,
-                    validator: ValidationUtils.validatePhone,
+                          keyboardType: TextInputType.phone,
+                          validator: ValidationUtils.validatePhone,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
@@ -287,13 +308,19 @@ class _SignUpPageState extends State<SignUpPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -304,15 +331,16 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                             ),
                             filled: true,
-                            fillColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            fillColor:
+                                isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 16,
                             ),
                           ),
-                              keyboardType: TextInputType.emailAddress,
-                              validator: ValidationUtils.validateEmail,
-                            ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: ValidationUtils.validateEmail,
+                        ),
                         SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
@@ -341,13 +369,19 @@ class _SignUpPageState extends State<SignUpPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -358,7 +392,8 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                             ),
                             filled: true,
-                            fillColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            fillColor:
+                                isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 16,
@@ -387,20 +422,27 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword;
                                 });
                               },
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -411,16 +453,19 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                             ),
                             filled: true,
-                            fillColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            fillColor:
+                                isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) => ValidationUtils.validatePasswordConfirmation(
-                            value,
-                            _passwordController.text,
-                          ),
+                          validator:
+                              (value) =>
+                                  ValidationUtils.validatePasswordConfirmation(
+                                    value,
+                                    _passwordController.text,
+                                  ),
                         ),
                         SizedBox(height: 24),
                         Row(
@@ -448,7 +493,10 @@ class _SignUpPageState extends State<SignUpPage> {
                                 text: TextSpan(
                                   text: 'I agree to the ',
                                   style: TextStyle(
-                                    color: isDarkMode ? Color(0xFF9E9E9E) : Color(0xFF666666),
+                                    color:
+                                        isDarkMode
+                                            ? Color(0xFF9E9E9E)
+                                            : Color(0xFF666666),
                                     fontSize: 14,
                                   ),
                                   children: [
@@ -485,31 +533,34 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                             elevation: 0,
                             shadowColor: Colors.transparent,
-                            disabledBackgroundColor: Color(0xFF2196F3).withOpacity(0.5),
+                            disabledBackgroundColor: Color(
+                              0xFF2196F3,
+                            ).withOpacity(0.5),
                           ),
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
+                          child:
+                              _isLoading
+                                  ? SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                  : Text(
+                                    'Create Account',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                )
-                              : Text(
-                                  'Create Account',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
                         ),
                       ],
                     ),
                   ),
                 ),
                 SizedBox(height: 32),
-                
+
                 // Sign in section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -517,7 +568,8 @@ class _SignUpPageState extends State<SignUpPage> {
                     Text(
                       "Already have an account? ",
                       style: TextStyle(
-                        color: isDarkMode ? Color(0xFF9E9E9E) : Color(0xFF666666),
+                        color:
+                            isDarkMode ? Color(0xFF9E9E9E) : Color(0xFF666666),
                         fontSize: 14,
                       ),
                     ),

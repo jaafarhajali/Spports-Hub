@@ -176,7 +176,10 @@ class _TournamentPaymentPopupState extends State<TournamentPaymentPopup> {
           _buildDetailRow('Tournament', widget.tournament.name),
           if (widget.tournament.stadiumName != null)
             _buildDetailRow('Stadium', widget.tournament.stadiumName!),
-          _buildDetailRow('Start Date', _formatDate(widget.tournament.startDate)),
+          _buildDetailRow(
+            'Start Date',
+            _formatDate(widget.tournament.startDate),
+          ),
           _buildDetailRow('End Date', _formatDate(widget.tournament.endDate)),
           const Divider(height: 20),
           _buildDetailRow(
@@ -195,13 +198,7 @@ class _TournamentPaymentPopupState extends State<TournamentPaymentPopup> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-            ),
-          ),
+          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
           Text(
             value,
             style: TextStyle(
@@ -223,13 +220,10 @@ class _TournamentPaymentPopupState extends State<TournamentPaymentPopup> {
         children: [
           const Text(
             'Card Information',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
-          
+
           // Card Number
           TextFormField(
             controller: _cardNumberController,
@@ -262,9 +256,9 @@ class _TournamentPaymentPopupState extends State<TournamentPaymentPopup> {
               setState(() {});
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               // Expiry Date
@@ -298,9 +292,9 @@ class _TournamentPaymentPopupState extends State<TournamentPaymentPopup> {
                   },
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // CVV
               Expanded(
                 child: TextFormField(
@@ -362,23 +356,24 @@ class _TournamentPaymentPopupState extends State<TournamentPaymentPopup> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: _isProcessing
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+            child:
+                _isProcessing
+                    ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : Text(
+                      'Pay ${widget.tournament.entryPricePerTeam.toStringAsFixed(0)} LBP',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  )
-                : Text(
-                    'Pay ${widget.tournament.entryPricePerTeam.toStringAsFixed(0)} LBP',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
           ),
         ),
         const SizedBox(height: 12),
@@ -395,10 +390,7 @@ class _TournamentPaymentPopupState extends State<TournamentPaymentPopup> {
             ),
             child: const Text(
               'Cancel',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),
         ),
@@ -416,14 +408,14 @@ class CardNumberInputFormatter extends TextInputFormatter {
   ) {
     final text = newValue.text.replaceAll(' ', '');
     final buffer = StringBuffer();
-    
+
     for (int i = 0; i < text.length; i++) {
       if (i > 0 && i % 4 == 0) {
         buffer.write(' ');
       }
       buffer.write(text[i]);
     }
-    
+
     final formatted = buffer.toString();
     return TextEditingValue(
       text: formatted,
@@ -439,22 +431,22 @@ class ExpiryDateInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     final text = newValue.text;
-    
+
     if (text.length <= 2) {
       return newValue;
     }
-    
+
     if (text.length <= 4) {
       final month = text.substring(0, 2);
       final year = text.substring(2);
       final formatted = '$month/$year';
-      
+
       return TextEditingValue(
         text: formatted,
         selection: TextSelection.collapsed(offset: formatted.length),
       );
     }
-    
+
     return oldValue;
   }
 }

@@ -43,7 +43,7 @@ class _SignInPageState extends State<SignInPage> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: isDarkMode ? Color(0xFF121212) : Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -103,7 +103,7 @@ class _SignInPageState extends State<SignInPage> {
                   ),
                 ),
                 SizedBox(height: 24),
-                
+
                 // App name
                 Text(
                   'SPORTS HUB',
@@ -123,7 +123,7 @@ class _SignInPageState extends State<SignInPage> {
                   ),
                 ),
                 SizedBox(height: 48),
-                
+
                 // Login form
                 Container(
                   constraints: BoxConstraints(maxWidth: 400),
@@ -135,22 +135,28 @@ class _SignInPageState extends State<SignInPage> {
                         TextFormField(
                           controller: _usernameController,
                           decoration: InputDecoration(
-                            labelText: 'Email or Username',
+                            labelText: 'Email',
                             prefixIcon: Icon(
-                              Icons.person_outline,
+                              Icons.email_outlined,
                               color: Color(0xFF757575),
                               size: 20,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -161,7 +167,8 @@ class _SignInPageState extends State<SignInPage> {
                               ),
                             ),
                             filled: true,
-                            fillColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            fillColor:
+                                isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 16,
@@ -169,14 +176,10 @@ class _SignInPageState extends State<SignInPage> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your email or username';
+                              return 'Please enter your email';
                             }
-                            // Check if it looks like an email, if so validate email format
-                            if (value.contains('@')) {
-                              return ValidationUtils.validateEmail(value);
-                            }
-                            // Otherwise validate as username
-                            return ValidationUtils.validateUsername(value);
+                            // Validate email format
+                            return ValidationUtils.validateEmail(value);
                           },
                         ),
                         SizedBox(height: 16),
@@ -207,13 +210,19 @@ class _SignInPageState extends State<SignInPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDarkMode ? Color(0xFF333333) : Color(0xFFE0E0E0),
+                                color:
+                                    isDarkMode
+                                        ? Color(0xFF333333)
+                                        : Color(0xFFE0E0E0),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -224,13 +233,18 @@ class _SignInPageState extends State<SignInPage> {
                               ),
                             ),
                             filled: true,
-                            fillColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            fillColor:
+                                isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) => ValidationUtils.validateRequired(value, 'Password'),
+                          validator:
+                              (value) => ValidationUtils.validateRequired(
+                                value,
+                                'Password',
+                              ),
                         ),
                         SizedBox(height: 16),
                         Row(
@@ -259,14 +273,20 @@ class _SignInPageState extends State<SignInPage> {
                                   'Remember me',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isDarkMode ? Color(0xFF9E9E9E) : Color(0xFF666666),
+                                    color:
+                                        isDarkMode
+                                            ? Color(0xFF9E9E9E)
+                                            : Color(0xFF666666),
                                   ),
                                 ),
                               ],
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.pushNamed(context, '/forgot_password');
+                                Navigator.pushNamed(
+                                  context,
+                                  '/forgot_password',
+                                );
                               },
                               child: Text(
                                 'Forgot Password?',
@@ -281,78 +301,92 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                         SizedBox(height: 32),
                         ElevatedButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () async {
-                                if (_formKey.currentState!.validate()) {
-                                  try {
-                                    setState(() {
-                                      _isLoading = true;
-                                    });
+                          onPressed:
+                              _isLoading
+                                  ? null
+                                  : () async {
+                                    if (_formKey.currentState!.validate()) {
+                                      try {
+                                        setState(() {
+                                          _isLoading = true;
+                                        });
 
-                                    // Save remember me preference
-                                    await _authService.setRememberMe(_rememberMe);
+                                        // Save remember me preference
+                                        await _authService.setRememberMe(
+                                          _rememberMe,
+                                        );
 
-                                    // Add logging to help debug
-                                    print(
-                                      'Attempting login with username: ${_usernameController.text}',
-                                    );
+                                        // Add logging to help debug
+                                        print(
+                                          'Attempting login with username: ${_usernameController.text}',
+                                        );
 
-                                    final result = await _authService.login(
-                                      _usernameController.text,
-                                      _passwordController.text,
-                                    );
+                                        final result = await _authService.login(
+                                          _usernameController.text,
+                                          _passwordController.text,
+                                        );
 
-                                    print('Login result: $result');
+                                        print('Login result: $result');
 
-                                    setState(() {
-                                      _isLoading = false;
-                                    });
+                                        setState(() {
+                                          _isLoading = false;
+                                        });
 
-                                    if (result['success'] == true ||
-                                        result.containsKey('token')) {
-                                      // Show success message
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Sign in successful!'),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
+                                        if (result['success'] == true ||
+                                            result.containsKey('token')) {
+                                          // Show success message
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Sign in successful!',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
 
-                                      // Navigate to the home page
-                                      Navigator.pushReplacementNamed(
-                                        context,
-                                        '/sports_hub',
-                                      );
-                                    } else {
-                                      // Show error message
-                                      final errorMessage =
-                                          result['message'] ?? 'Login failed';
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(errorMessage),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
+                                          // Navigate to the home page
+                                          Navigator.pushReplacementNamed(
+                                            context,
+                                            '/sports_hub',
+                                          );
+                                        } else {
+                                          // Show error message
+                                          final errorMessage =
+                                              result['message'] ??
+                                              'Login failed';
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(errorMessage),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        print(
+                                          'Login exception: ${e.toString()}',
+                                        );
+                                        setState(() {
+                                          _isLoading = false;
+                                        });
+
+                                        // Show detailed error message
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Connection error: ${e.toString()}',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
                                     }
-                                  } catch (e) {
-                                    print('Login exception: ${e.toString()}');
-                                    setState(() {
-                                      _isLoading = false;
-                                    });
-
-                                    // Show detailed error message
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Connection error: ${e.toString()}',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
+                                  },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF2196F3),
                             foregroundColor: Colors.white,
@@ -362,31 +396,34 @@ class _SignInPageState extends State<SignInPage> {
                             ),
                             elevation: 0,
                             shadowColor: Colors.transparent,
-                            disabledBackgroundColor: Color(0xFF2196F3).withOpacity(0.5),
+                            disabledBackgroundColor: Color(
+                              0xFF2196F3,
+                            ).withOpacity(0.5),
                           ),
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
+                          child:
+                              _isLoading
+                                  ? SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                  : Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                )
-                              : Text(
-                                  'Sign In',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
                         ),
                       ],
                     ),
                   ),
                 ),
                 SizedBox(height: 32),
-                
+
                 // Sign up section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -394,7 +431,8 @@ class _SignInPageState extends State<SignInPage> {
                     Text(
                       "Don't have an account? ",
                       style: TextStyle(
-                        color: isDarkMode ? Color(0xFF9E9E9E) : Color(0xFF666666),
+                        color:
+                            isDarkMode ? Color(0xFF9E9E9E) : Color(0xFF666666),
                         fontSize: 14,
                       ),
                     ),
