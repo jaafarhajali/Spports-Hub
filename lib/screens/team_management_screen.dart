@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/team.dart';
 import '../services/team_service.dart';
+import '../services/user_service.dart';
 import 'invite_user_screen.dart';
 import 'edit_team_screen.dart';
 
@@ -13,6 +14,7 @@ class TeamManagementScreen extends StatefulWidget {
 
 class _TeamManagementScreenState extends State<TeamManagementScreen> {
   final TeamService _teamService = TeamService();
+  final UserService _userService = UserService();
   Team? _team;
   bool _isLoading = true;
   String? _error;
@@ -32,10 +34,11 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
       });
 
       final team = await _teamService.getMyTeam();
+      final currentUser = await _userService.getUserProfile();
       
       setState(() {
         _team = team;
-        _isLeader = team?.leaderMember != null;
+        _isLeader = team?.leader == currentUser?['id'];
         _isLoading = false;
       });
     } catch (e) {
