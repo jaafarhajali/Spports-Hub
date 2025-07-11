@@ -414,8 +414,8 @@ class _ExpiryDateInputFormatter extends TextInputFormatter {
       final year = text.substring(2);
 
       return TextEditingValue(
-        text: '$month/${year}',
-        selection: TextSelection.collapsed(offset: '$month/${year}'.length),
+        text: '$month/$year',
+        selection: TextSelection.collapsed(offset: '$month/$year'.length),
       );
     }
 

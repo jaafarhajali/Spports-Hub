@@ -74,21 +74,21 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         _isLoading = false;
       });
 
-      if (result != null && result['success'] == true) {
+      if (result['success'] == true) {
         setState(() {
           _emailSent = true;
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text((result != null && result['message'] != null) ? result['message'] : 'Verification email sent! Please check your inbox.'),
+            content: Text((result['message'] != null) ? result['message'] : 'Verification email sent! Please check your inbox.'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text((result != null && result['message'] != null) ? result['message'] : 'Failed to send verification email'),
+            content: Text((result['message'] != null) ? result['message'] : 'Failed to send verification email'),
             backgroundColor: Colors.red,
           ),
         );
@@ -145,7 +145,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         _isVerifying = false;
       });
 
-      if (result != null && result['success'] == true) {
+      if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Email verified successfully! You can now use all features.'),
@@ -165,7 +165,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         );
       } else {
         // Check if the error is about already verified user or token expired but user is verified
-        final errorMessage = (result != null && result['message'] != null) ? result['message'] : 'Email verification failed';
+        final errorMessage = (result['message'] != null) ? result['message'] : 'Email verification failed';
         final lowerMessage = errorMessage.toLowerCase();
         
         if (lowerMessage.contains('already verified') || 

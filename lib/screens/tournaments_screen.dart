@@ -123,6 +123,20 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       return;
     }
 
+    // Check if team is already in tournament
+    final isTeamInTournament = await _tournamentService.isTeamInTournament(tournament, _userTeam?.id);
+    if (isTeamInTournament) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your team is already in this tournament'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     // Show payment popup first
     showDialog(
       context: context,
@@ -195,6 +209,126 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to join tournament: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _leaveTournament(Tournament tournament) async {
+    // Check if user has a team
+    if (_userTeam == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You need to have a team to leave tournament'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Check if team is actually in tournament
+    final isTeamInTournament = await _tournamentService.isTeamInTournament(tournament, _userTeam?.id);
+    if (!isTeamInTournament) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your team is not in this tournament'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show confirmation dialog
+    final bool? shouldLeave = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Leave Tournament'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Are you sure you want to leave "${tournament.name}"?'),
+              const SizedBox(height: 12),
+              const Text(
+                'Note: You can only leave if the tournament starts more than 24 hours from now. Your entry fee will be refunded.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Leave Tournament'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLeave != true) return;
+
+    try {
+      final teamId = _userTeam?.id;
+      if (teamId == null || teamId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Team information not available'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Leaving tournament...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      final result = await _tournamentService.leaveTournament(
+        tournament.id,
+        teamId,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['message'] ?? 'Tournament leave request processed',
+            ),
+            backgroundColor:
+                result['success'] == true ? Colors.green : Colors.orange,
+          ),
+        );
+
+        if (result['success'] == true) {
+          _loadData(); // Reload tournaments on success
+        }
+      }
+    } catch (e) {
+      print('Error leaving tournament: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to leave tournament: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -679,78 +813,93 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                     const SizedBox(height: 20),
 
                     // Enhanced Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed:
-                                () => _showTournamentDetails(
-                                  tournament,
-                                  primaryColor,
+                    FutureBuilder<bool>(
+                      future: _tournamentService.isTeamInTournament(tournament, _userTeam?.id),
+                      builder: (context, snapshot) {
+                        final isTeamInTournament = snapshot.data ?? false;
+                        
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed:
+                                    () => _showTournamentDetails(
+                                      tournament,
+                                      primaryColor,
+                                    ),
+                                icon: Icon(
+                                  Icons.info_outline,
+                                  size: 18,
+                                  color: primaryColor,
                                 ),
-                            icon: Icon(
-                              Icons.info_outline,
-                              size: 18,
-                              color: primaryColor,
-                            ),
-                            label: Text(
-                              'Details',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: primaryColor,
+                                label: Text(
+                                  'Details',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: primaryColor),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
                               ),
                             ),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: primaryColor),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton.icon(
+                                onPressed: _userTeam == null
+                                    ? null
+                                    : isTeamInTournament
+                                        ? () => _leaveTournament(tournament)
+                                        : tournament.isRegistrationOpen
+                                            ? () => _joinTournament(tournament)
+                                            : null,
+                                icon: Icon(
+                                  isTeamInTournament
+                                      ? Icons.exit_to_app
+                                      : tournament.isRegistrationOpen
+                                          ? Icons.app_registration
+                                          : tournament.isOngoing
+                                          ? Icons.sports
+                                          : Icons.check_circle,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  isTeamInTournament
+                                      ? 'Leave'
+                                      : tournament.isRegistrationOpen
+                                          ? 'Join Now'
+                                          : tournament.isOngoing
+                                          ? 'Ongoing'
+                                          : 'Ended',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isTeamInTournament
+                                      ? Colors.orange
+                                      : tournament.isRegistrationOpen
+                                          ? primaryColor
+                                          : Colors.grey,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: (isTeamInTournament || tournament.isRegistrationOpen) ? 2 : 0,
+                                ),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton.icon(
-                            onPressed:
-                                tournament.isRegistrationOpen
-                                    ? () => _joinTournament(tournament)
-                                    : null,
-                            icon: Icon(
-                              tournament.isRegistrationOpen
-                                  ? Icons.app_registration
-                                  : tournament.isOngoing
-                                  ? Icons.sports
-                                  : Icons.check_circle,
-                              size: 18,
-                            ),
-                            label: Text(
-                              tournament.isRegistrationOpen
-                                  ? 'Join Now'
-                                  : tournament.isOngoing
-                                  ? 'Ongoing'
-                                  : 'Ended',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  tournament.isRegistrationOpen
-                                      ? primaryColor
-                                      : Colors.grey,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              elevation: tournament.isRegistrationOpen ? 2 : 0,
-                            ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -932,27 +1081,61 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
 
                         const SizedBox(height: 20),
 
-                        // Join button
-                        if (tournament.isRegistrationOpen)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                _joinTournament(tournament);
-                              },
-                              icon: const Icon(Icons.add),
-                              label: const Text('Join Tournament'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                        // Join/Leave button
+                        FutureBuilder<bool>(
+                          future: _tournamentService.isTeamInTournament(tournament, _userTeam?.id),
+                          builder: (context, snapshot) {
+                            final isTeamInTournament = snapshot.data ?? false;
+                            
+                            if (_userTeam == null) {
+                              return const SizedBox.shrink();
+                            }
+                            
+                            if (isTeamInTournament) {
+                              return SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    _leaveTournament(tournament);
+                                  },
+                                  icon: const Icon(Icons.exit_to_app),
+                                  label: const Text('Leave Tournament'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
+                              );
+                            } else if (tournament.isRegistrationOpen) {
+                              return SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    _joinTournament(tournament);
+                                  },
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Join Tournament'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            
+                            return const SizedBox.shrink();
+                          },
+                        ),
                       ],
                     ),
                   ),

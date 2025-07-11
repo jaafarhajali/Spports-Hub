@@ -229,10 +229,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       final result = await _authService.sendVerificationEmail(email);
       
-      if (result != null && result['success'] == true) {
+      if (result['success'] == true) {
         _showSnackBar('Verification email sent! Please check your inbox.');
       } else {
-        _showSnackBar((result != null && result['message'] != null) ? result['message'] : 'Failed to send verification email', isError: true);
+        _showSnackBar((result['message'] != null) ? result['message'] : 'Failed to send verification email', isError: true);
       }
     } catch (e) {
       _showSnackBar('Failed to send verification email: $e', isError: true);

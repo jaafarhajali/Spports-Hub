@@ -66,8 +66,13 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     final tournament = widget.tournament!;
     _nameController.text = tournament.name;
     _descriptionController.text = tournament.description;
-    _entryPriceController.text = tournament.entryPricePerTeam.toString();
-    _rewardPrizeController.text = tournament.rewardPrize.toString();
+    // Format prices to remove unnecessary decimal places
+    _entryPriceController.text = tournament.entryPricePerTeam % 1 == 0 
+        ? tournament.entryPricePerTeam.toInt().toString() 
+        : tournament.entryPricePerTeam.toString();
+    _rewardPrizeController.text = tournament.rewardPrize % 1 == 0 
+        ? tournament.rewardPrize.toInt().toString() 
+        : tournament.rewardPrize.toString();
     _maxTeamsController.text = tournament.maxTeams.toString();
     _startDate = tournament.startDate;
     _endDate = tournament.endDate;
@@ -522,15 +527,15 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                     label: 'Entry Price (\$)',
                     hint: '0',
                     icon: Icons.attach_money,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Required';
                       }
-                      final price = int.tryParse(value);
+                      final price = double.tryParse(value);
                       if (price == null || price < 0) {
-                        return 'Invalid price';
+                        return 'Enter valid price';
                       }
                       return null;
                     },
@@ -543,15 +548,15 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                     label: 'Reward Prize (\$)',
                     hint: '0',
                     icon: Icons.card_giftcard,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Required';
                       }
-                      final prize = int.tryParse(value);
+                      final prize = double.tryParse(value);
                       if (prize == null || prize < 0) {
-                        return 'Invalid prize';
+                        return 'Enter valid prize';
                       }
                       return null;
                     },

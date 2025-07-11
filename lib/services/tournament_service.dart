@@ -152,6 +152,70 @@ class TournamentService {
     }
   }
 
+  /// Leave tournament with team - Requires teamLeader role
+  /// POST /api/tournaments/leave
+  Future<Map<String, dynamic>> leaveTournament(String tournamentId, String teamId) async {
+    try {
+      final token = await _authService.getToken();
+      final userRole = await _authService.getUserRole();
+
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      // Check if user has teamLeader role (as per backend requirement)
+      if (userRole != 'teamLeader' && userRole != 'admin') {
+        throw Exception('Only team leaders can leave tournaments');
+      }
+
+      print('Leaving tournament: $tournamentId with team: $teamId');
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/tournaments/leave'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'tournamentId': tournamentId,
+              'teamId': teamId,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      print('Leave tournament response status: ${response.statusCode}');
+      print('Leave tournament response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['status'] == 'success') {
+          return {
+            'success': true,
+            'message': jsonData['message'] ?? 'Successfully left tournament',
+            'data': jsonData['data'],
+          };
+        } else if (jsonData['status'] == 'fail') {
+          return {
+            'success': false,
+            'message': jsonData['message'] ?? 'Failed to leave tournament',
+          };
+        } else {
+          throw Exception(jsonData['message'] ?? 'Failed to leave tournament');
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to leave tournament');
+      }
+    } catch (e) {
+      print('Leave tournament error: $e');
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
   // ============================================================================
   // DASHBOARD TOURNAMENT ENDPOINTS (/api/dashboard)
   // ============================================================================
@@ -432,6 +496,28 @@ class TournamentService {
     try {
       final userRole = await _authService.getUserRole();
       return userRole == 'teamLeader' || userRole == 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Check if user can leave tournaments (teamLeader or admin role)
+  Future<bool> canLeaveTournaments() async {
+    try {
+      final userRole = await _authService.getUserRole();
+      return userRole == 'teamLeader' || userRole == 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Check if user's team is already in the tournament
+  Future<bool> isTeamInTournament(Tournament tournament, String? teamId) async {
+    try {
+      if (teamId == null || teamId.isEmpty) {
+        return false;
+      }
+      return tournament.teams.contains(teamId);
     } catch (e) {
       return false;
     }
