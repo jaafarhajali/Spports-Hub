@@ -770,7 +770,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     }
 
     return DropdownButtonFormField<String>(
-      value: _selectedStadiumId,
+      initialValue: _selectedStadiumId,
       decoration: InputDecoration(
         labelText: 'Stadium',
         prefixIcon: Icon(Icons.stadium, color: colorScheme.primary),

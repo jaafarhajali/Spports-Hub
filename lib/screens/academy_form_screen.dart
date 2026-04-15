@@ -430,7 +430,7 @@ class _AcademyFormScreenState extends State<AcademyFormScreen> {
     }
     
     return DropdownButtonFormField<String>(
-      value: _selectedOwnerId,
+      initialValue: _selectedOwnerId,
       isExpanded: true, // This helps prevent overflow
       decoration: InputDecoration(
         labelText: 'Academy Owner',

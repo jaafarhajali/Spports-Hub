@@ -478,7 +478,7 @@ class _StadiumFormScreenState extends State<StadiumFormScreen> {
     }
     
     return DropdownButtonFormField<String>(
-      value: _selectedOwnerId,
+      initialValue: _selectedOwnerId,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: 'Stadium Owner',
