@@ -35,18 +35,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
 
     try {
-      // Try to load from backend first, fallback to mock data
-      List<AppNotification> notifications;
-      try {
-        notifications = await _notificationService.getAllNotifications();
-        if (notifications.isEmpty) {
-          // If no notifications from backend, show mock data for demo
-          notifications = await _notificationService.getMockNotifications();
-        }
-      } catch (e) {
-        print('Failed to load from backend, using mock data: $e');
-        notifications = await _notificationService.getMockNotifications();
-      }
+      final notifications = await _notificationService.getAllNotifications();
 
       setState(() {
         _notifications = _notificationService.sortByDate(notifications);
