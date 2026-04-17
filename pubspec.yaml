@@ -38,6 +38,7 @@ dependencies:
   http: ^1.1.0
   intl: ^0.18.1
   shared_preferences: ^2.2.0
+  flutter_secure_storage: ^9.2.2
   google_sign_in: ^6.1.6
   image_picker: ^1.0.4
   url_launcher: ^6.1.14

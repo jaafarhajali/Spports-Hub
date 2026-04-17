@@ -16,6 +16,7 @@ import 'screens/reset_password_screen.dart';
 import 'screens/email_verification_screen.dart';
 import 'log page/signin_page.dart';
 import 'log page/signup_page.dart';
+import 'services/auth_events.dart';
 
 void main() {
   runApp(
@@ -41,6 +42,27 @@ class _SportsHubAppState extends State<SportsHubApp> {
   void initState() {
     super.initState();
     _initDeepLinks();
+    AuthEvents.loggedOut.addListener(_onLoggedOut);
+  }
+
+  @override
+  void dispose() {
+    AuthEvents.loggedOut.removeListener(_onLoggedOut);
+    super.dispose();
+  }
+
+  void _onLoggedOut() {
+    // Global 401 handler: clear back-stack and land on sign-in.
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+    nav.pushNamedAndRemoveUntil('/signin', (route) => false);
+    // Surface a short toast-like message.
+    final ctx = navigatorKey.currentContext;
+    if (ctx != null) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('Session expired. Please sign in again.')),
+      );
+    }
   }
 
   Future<void> _initDeepLinks() async {

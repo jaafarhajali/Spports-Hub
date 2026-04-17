@@ -13,6 +13,8 @@ import '../services/user_service.dart'; // Add this import
 import '../services/notification_service.dart'; // Add this import
 import 'create_team_screen.dart';
 import 'team_management_screen.dart';
+import 'ai_chatbot_screen.dart';
+import 'ai_stadium_search_screen.dart';
 import 'notifications_screen.dart';
 import 'owner_dashboard_screen.dart';
 
@@ -246,6 +248,53 @@ class _SportsHubState extends State<SportsHub>
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(isDarkMode, colorScheme),
+      floatingActionButton: _buildAiFab(context),
+    );
+  }
+
+  Widget _buildAiFab(BuildContext context) {
+    return FloatingActionButton.extended(
+      heroTag: 'ai-fab',
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          showDragHandle: true,
+          builder: (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.chat_bubble_outline),
+                  title: const Text('Booking assistant'),
+                  subtitle: const Text('Ask about cancellations, tournaments, teams'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AiChatbotScreen()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text('AI stadium search'),
+                  subtitle: const Text('Describe what you want in plain English'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AiStadiumSearchScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+      icon: const Icon(Icons.auto_awesome),
+      label: const Text('AI'),
     );
   }
 

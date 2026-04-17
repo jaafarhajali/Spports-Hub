@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:first_attempt/services/user_service.dart';
 import 'package:first_attempt/widgets/user_profile_avatar.dart';
+import 'package:first_attempt/screens/skills_editor_screen.dart';
 import 'package:first_attempt/utils/image_utils.dart';
 import '../utils/validation_utils.dart';
 import '../themes/app_theme.dart';
@@ -278,6 +279,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
         ),
         actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: const Icon(Icons.sports_soccer),
+              tooltip: 'Player skills',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SkillsEditorScreen()),
+              ),
+            ),
           if (!_isEditing)
             Container(
               margin: const EdgeInsets.only(right: 8),

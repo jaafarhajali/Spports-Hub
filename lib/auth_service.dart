@@ -1,15 +1,17 @@
 import 'dart:convert';
 import 'package:first_attempt/services/app_config.dart';
+import 'package:first_attempt/services/token_store.dart';
+import 'package:first_attempt/utils/logger.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final String baseUrl = AppConfig.apiUrl;
 
-  // Store token
+  // Store token — goes to secure storage (mirrored to SharedPreferences for
+  // backward compatibility with older services that still read prefs directly).
   Future<void> storeToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+    await TokenStore.save(token);
   }
 
   // Save token (alias for storeToken for consistency with team service)
@@ -17,10 +19,9 @@ class AuthService {
     await storeToken(token);
   }
 
-  // Get token
+  // Get token — reads from secure storage with fallback to SharedPreferences.
   Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
+    return TokenStore.read();
   }
 
   // Store remember me preference
@@ -104,9 +105,7 @@ class AuthService {
   // Login - supports both username and email
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
-      // Log the request for debugging
-      print('Sending login request to: $baseUrl/auth/login');
-      print('Request data: {"email": "$username", "password": "****"}');
+      AppLogger.debug('Login attempt');
 
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -117,9 +116,7 @@ class AuthService {
         }),
       );
 
-      // Log response for debugging
-      print('Login response status: ${response.statusCode}');
-      print('Login response body: ${response.body}');
+      AppLogger.debug('Login response', meta: {'status': response.statusCode});
 
       // Parse and return response
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -154,8 +151,8 @@ class AuthService {
           };
         }
       }
-    } catch (e) {
-      print('Login error: ${e.toString()}');
+    } catch (e, s) {
+      AppLogger.error('Login request failed', error: e, stack: s);
       return {'success': false, 'message': 'Connection error: ${e.toString()}'};
     }
   }
@@ -177,7 +174,7 @@ class AuthService {
 
       return data['role']?.toString();
     } catch (e) {
-      print('Error getting user role: $e');
+      AppLogger.debug('Error getting user role', meta: {'error': e.toString()});
       return null;
     }
   }
@@ -199,15 +196,15 @@ class AuthService {
 
       return data['userId']?.toString() ?? data['id']?.toString();
     } catch (e) {
-      print('Error getting user ID: $e');
+      AppLogger.debug('Error getting user ID', meta: {'error': e.toString()});
       return null;
     }
   }
 
   // Logout
   Future<void> logout() async {
+    await TokenStore.clear();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
     await prefs.remove('remember_me');
     await prefs.remove('user_name');
     await prefs.remove('user_email');
@@ -293,15 +290,13 @@ class AuthService {
 
       // Store new token and user data if verification successful
       if (result['success'] == true && result.containsKey('token') && result['token'] != null) {
-        print('Storing new token after verification: ${result['token']}');
         await storeToken(result['token']);
-        
+
         if (result.containsKey('user') && result['user'] != null) {
-          print('Storing user data after verification: ${result['user']}');
           await storeUserData(result['user']);
         }
       } else {
-        print('No token found in verification result: $result');
+        AppLogger.debug('Verification result contained no token');
       }
 
       return result;
@@ -327,7 +322,7 @@ class AuthService {
 
       return data['isVerified'] == true;
     } catch (e) {
-      print('Error checking email verification: $e');
+      AppLogger.debug('Error checking verification', meta: {'error': e.toString()});
       return false;
     }
   }
@@ -335,15 +330,15 @@ class AuthService {
   // Process HTTP response for verification endpoints
   Map<String, dynamic> _handleVerificationResponse(http.Response response) {
     try {
-      print('Verification response status: ${response.statusCode}');
-      print('Raw verification response body: ${response.body}');
+      AppLogger.debug('Verification response', meta: {'status': response.statusCode});
+      
       
       if (response.body.isEmpty) {
         return {'success': false, 'message': 'Empty response from server'};
       }
       
       final data = jsonDecode(response.body);
-      print('Parsed verification response: $data');
+      
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Backend returns {message: "...", token: "..."} format
@@ -360,8 +355,8 @@ class AuthService {
         return {'success': false, 'message': message};
       }
     } catch (e) {
-      print('Verification response parsing error: ${e.toString()}');
-      print('Raw verification response body: ${response.body}');
+      AppLogger.error('Verification parse error', error: e);
+      
       return {'success': false, 'message': 'Failed to parse server response: ${e.toString()}'};
     }
   }
@@ -370,8 +365,8 @@ class AuthService {
   Map<String, dynamic> _handleResponse(http.Response response) {
     try {
       final data = jsonDecode(response.body);
-      print('Response status: ${response.statusCode}'); // Add logging
-      print('Response body: $data'); // Add logging
+      AppLogger.debug('Response', meta: {'status': response.statusCode});
+      
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Backend returns {success: true, token: ..., user: ...}
@@ -394,8 +389,8 @@ class AuthService {
         return {'success': false, 'message': message};
       }
     } catch (e) {
-      print('Response parsing error: ${e.toString()}'); // Add logging
-      print('Raw response body: ${response.body}'); // Add raw body logging
+      AppLogger.error('Response parse error', error: e);
+      
       return {'success': false, 'message': 'Failed to parse response'};
     }
   }
